@@ -7,20 +7,17 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('tipo_documentos', function (Blueprint $table) {
             $table->id();
-            $table->string('nome');
-            $table->string('email')->unique();
-            $table->string('password');
-            $table->enum('perfil', ['administrador', 'operador'])->default('operador');
+            $table->string('nome')->unique();
+            $table->text('descricao')->nullable();
             $table->enum('status', ['ativo', 'inativo'])->default('ativo');
-            $table->rememberToken();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('tipo_documentos');
     }
 };
