@@ -1,20 +1,44 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DocumentoController;
+use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\TipoDocumentoController;
+use App\Http\Controllers\RelatorioController;
 use Illuminate\Support\Facades\Route;
 
+// Página inicial redireciona para login
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// Rotas autenticadas
+Route::middleware(['auth'])->group(function () {
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // Dashboard
+    Route::get('/dashboard', function () {
+        $total = \App\Models\Documento::count();
+        $porStatus = \App\Models\Documento::selectRaw('status, count(*) as total')
+            ->groupBy('status')->pluck('total', 'status');
+        return view('dashboard', compact('total', 'porStatus'));
+    })->name('dashboard');
+
+    // Documentos
+    Route::resource('documentos', DocumentoController::class)->except(['edit', 'update', 'destroy']);
+    Route::patch('documentos/{documento}/status', [DocumentoController::class, 'atualizarStatus'])->name('documentos.status');
+
+    // Tipos de Documento
+    Route::resource('tipos', TipoDocumentoController::class)->except(['show', 'destroy']);
+
+    // Relatórios (só admin)
+    Route::middleware('admin')->group(function () {
+        Route::get('/relatorios', [RelatorioController::class, 'index'])->name('relatorios.index');
+        Route::post('/relatorios/gerar', [RelatorioController::class, 'gerar'])->name('relatorios.gerar');
+    });
+
+    // Usuários (só admin)
+    Route::middleware('admin')->group(function () {
+        Route::resource('usuarios', UsuarioController::class);
+    });
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
