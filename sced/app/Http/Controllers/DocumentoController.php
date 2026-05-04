@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/DocumentoController.php
 
 namespace App\Http\Controllers;
 
@@ -51,7 +52,9 @@ class DocumentoController extends Controller
             'descricao'         => 'nullable|string',
             'setor_destino'     => 'required|string|max:255',
             'data_recebimento'  => 'required|date',
-            'anexo'             => 'nullable|file|max:10240',
+            // FIX 3: Valida array de arquivos
+            'anexos'            => 'nullable|array',
+            'anexos.*'          => 'file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
         ]);
 
         $documento = Documento::create([
@@ -66,7 +69,6 @@ class DocumentoController extends Controller
             'data_recebimento'    => $request->data_recebimento,
         ]);
 
-        // Salvar histórico inicial
         HistoricoMovimentacao::create([
             'documento_id'    => $documento->id,
             'usuario_id'      => auth()->id(),
@@ -75,22 +77,24 @@ class DocumentoController extends Controller
             'observacoes'     => 'Documento registrado no sistema.',
         ]);
 
-        // Upload de anexo (se houver)
-        if ($request->hasFile('anexo')) {
-            $file = $request->file('anexo');
-            $caminho = $file->store('anexos', 'public');
+        // FIX 3: Salva múltiplos anexos
+        if ($request->hasFile('anexos')) {
+            foreach ($request->file('anexos') as $file) {
+                $caminho = $file->store('anexos', 'public');
 
-            ArquivoAnexo::create([
-                'documento_id'    => $documento->id,
-                'usuario_id'      => auth()->id(),
-                'nome_arquivo'    => $file->getClientOriginalName(),
-                'caminho_arquivo' => $caminho,
-                'tipo_mime'       => $file->getMimeType(),
-                'tamanho_bytes'   => $file->getSize(),
-            ]);
+                ArquivoAnexo::create([
+                    'documento_id'    => $documento->id,
+                    'usuario_id'      => auth()->id(),
+                    'nome_arquivo'    => $file->getClientOriginalName(),
+                    'caminho_arquivo' => $caminho,
+                    'tipo_mime'       => $file->getMimeType(),
+                    'tamanho_bytes'   => $file->getSize(),
+                ]);
+            }
         }
 
-        return redirect()->route('documentos.show', $documento)->with('success', 'Documento registrado! Protocolo: ' . $documento->numero_protocolo);
+        return redirect()->route('documentos.show', $documento)
+            ->with('success', 'Documento registrado com sucesso! Protocolo: ' . $documento->numero_protocolo);
     }
 
     public function show(Documento $documento)
@@ -106,7 +110,6 @@ class DocumentoController extends Controller
             'observacoes' => 'nullable|string',
         ]);
 
-        // Apenas admin pode finalizar ou re-abrir "finalizado"
         if ($documento->status === 'finalizado' && !auth()->user()->isAdmin()) {
             return back()->with('error', 'Apenas administradores podem alterar documentos finalizados.');
         }

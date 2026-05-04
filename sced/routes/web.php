@@ -1,4 +1,5 @@
 <?php
+// routes/web.php
 
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\UsuarioController;
@@ -6,20 +7,26 @@ use App\Http\Controllers\TipoDocumentoController;
 use App\Http\Controllers\RelatorioController;
 use Illuminate\Support\Facades\Route;
 
-// Página inicial redireciona para login
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-// Rotas autenticadas
 Route::middleware(['auth'])->group(function () {
 
-    // Dashboard
+    // FIX 2: Dashboard agora passa $recentes corretamente
     Route::get('/dashboard', function () {
-        $total = \App\Models\Documento::count();
+        $total    = \App\Models\Documento::count();
         $porStatus = \App\Models\Documento::selectRaw('status, count(*) as total')
-            ->groupBy('status')->pluck('total', 'status');
-        return view('dashboard', compact('total', 'porStatus'));
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        // Busca os 8 documentos mais recentes com relacionamentos
+        $recentes = \App\Models\Documento::with(['tipoDocumento'])
+            ->orderBy('created_at', 'desc')
+            ->limit(8)
+            ->get();
+
+        return view('dashboard', compact('total', 'porStatus', 'recentes'));
     })->name('dashboard');
 
     // Documentos
@@ -39,6 +46,7 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('admin')->group(function () {
         Route::resource('usuarios', UsuarioController::class);
     });
+
 });
 
 require __DIR__ . '/auth.php';
