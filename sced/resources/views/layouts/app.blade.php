@@ -1,7 +1,4 @@
-{{-- ============================================================
-     Arquivo: resources/views/layouts/app.blade.php
-     Layout principal com sidebar — usado em TODAS as telas internas
-     ============================================================ --}}
+{{-- resources/views/layouts/app.blade.php --}}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -9,23 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SCED — @yield('title', 'Sistema')</title>
     <link rel="stylesheet" href="{{ asset('css/sced.css') }}">
-    {{-- Bootstrap só para paginação e grid --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     @stack('styles')
 </head>
 <body>
 
-{{-- ── SIDEBAR ── --}}
 <aside class="sidebar" id="sidebar">
 
-    {{-- Logo --}}
     <div class="sidebar-logo">
         <div class="logo-icon">📂</div>
         <div class="logo-title">SCED</div>
         <div class="logo-sub">Controle de Documentos</div>
     </div>
 
-    {{-- Navegação --}}
     <nav class="sidebar-nav">
 
         <div class="nav-section-label">Principal</div>
@@ -35,13 +28,15 @@
             <span class="nav-icon">🏠</span> Dashboard
         </a>
 
+        {{-- FIX 1: Documentos só fica ativo em index e show, NÃO em create --}}
         <a href="{{ route('documentos.index') }}"
-           class="sidebar-link {{ request()->routeIs('documentos.*') ? 'active' : '' }}">
+           class="sidebar-link {{ request()->routeIs('documentos.index') || request()->routeIs('documentos.show') ? 'active' : '' }}">
             <span class="nav-icon">📄</span> Documentos
         </a>
 
+        {{-- FIX 1: Novo Documento fica ativo apenas em create --}}
         <a href="{{ route('documentos.create') }}"
-           class="sidebar-link">
+           class="sidebar-link {{ request()->routeIs('documentos.create') ? 'active' : '' }}">
             <span class="nav-icon">➕</span> Novo Documento
         </a>
 
@@ -66,7 +61,6 @@
 
     </nav>
 
-    {{-- Rodapé com usuário logado --}}
     <div class="sidebar-footer">
         <div class="user-info">
             <div class="user-avatar">
@@ -88,17 +82,15 @@
     </div>
 </aside>
 
-{{-- ── CONTEÚDO PRINCIPAL ── --}}
 <div class="main-content">
 
-    {{-- Topbar --}}
+    {{-- FIX 6: Topbar sticky fixo no topo --}}
     <div class="topbar">
         <div>
             <div class="topbar-title">@yield('title', 'Dashboard')</div>
             <div class="topbar-sub">@yield('subtitle', '')</div>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
-            {{-- Botão mobile para abrir sidebar --}}
             <button class="btn-secondary-sced d-lg-none" onclick="document.getElementById('sidebar').classList.toggle('open')">
                 ☰
             </button>
@@ -107,20 +99,22 @@
     </div>
 
     {{-- Alertas globais --}}
-    <div class="page-body" style="padding-bottom:0; padding-top:0;">
-        @if(session('success'))
-            <div class="alert-sced alert-success" style="margin-top:20px;">
+    @if(session('success'))
+        <div style="padding: 0 32px; padding-top: 16px;">
+            <div class="alert-sced alert-success">
                 ✅ {{ session('success') }}
             </div>
-        @endif
-        @if(session('error'))
-            <div class="alert-sced alert-error" style="margin-top:20px;">
+        </div>
+    @endif
+    @if(session('error'))
+        <div style="padding: 0 32px; padding-top: 16px;">
+            <div class="alert-sced alert-error">
                 ❌ {{ session('error') }}
             </div>
-        @endif
-    </div>
+        </div>
+    @endif
 
-    {{-- Conteúdo da página --}}
+    {{-- FIX 6: Conteúdo com scroll independente --}}
     <div class="page-body">
         @yield('content')
     </div>
@@ -128,6 +122,19 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+{{-- FIX 5: Função global para toggle de senha --}}
+<script>
+function toggleSenha(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    btn.innerHTML = isPassword
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+}
+</script>
+
 @stack('scripts')
 </body>
 </html>
