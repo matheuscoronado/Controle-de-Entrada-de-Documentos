@@ -1,6 +1,4 @@
-{{-- ============================================================
-     Arquivo: resources/views/usuarios/create.blade.php
-     ============================================================ --}}
+{{-- resources/views/usuarios/create.blade.php --}}
 @extends('layouts.app')
 @section('title', 'Novo Usuário')
 @section('subtitle', 'Cadastre um novo usuário no sistema')
@@ -26,7 +24,9 @@
                            value="{{ old('nome') }}"
                            placeholder="Nome completo do usuário"
                            required>
-                    @error('nome') <div class="form-error">{{ $message }}</div> @enderror
+                    @error('nome')
+                        <div class="form-error">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div class="form-group">
@@ -36,27 +36,57 @@
                            value="{{ old('email') }}"
                            placeholder="email@dominio.com"
                            required>
-                    @error('email') <div class="form-error">{{ $message }}</div> @enderror
+                    @error('email')
+                        <div class="form-error">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div class="row g-3">
                     <div class="col-12 col-md-6">
                         <div class="form-group">
                             <label class="form-label-sced">Senha *</label>
-                            <input type="password" name="password"
-                                   class="form-input-sced {{ $errors->has('password') ? 'is-invalid' : '' }}"
-                                   placeholder="Mínimo 6 caracteres"
-                                   required>
-                            @error('password') <div class="form-error">{{ $message }}</div> @enderror
+                            {{-- FIX 5: Ícone do olho na senha --}}
+                            <div style="position:relative;">
+                                <input type="password" name="password" id="senha_nova"
+                                       class="form-input-sced {{ $errors->has('password') ? 'is-invalid' : '' }}"
+                                       placeholder="Mínimo 6 caracteres"
+                                       style="padding-right:44px;"
+                                       required>
+                                <button type="button"
+                                    onclick="toggleSenha('senha_nova', this)"
+                                    style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;display:flex;align-items:center;padding:0;"
+                                    title="Mostrar/ocultar senha">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            @error('password')
+                                <div class="form-error">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                     <div class="col-12 col-md-6">
                         <div class="form-group">
                             <label class="form-label-sced">Confirmar Senha *</label>
-                            <input type="password" name="password_confirmation"
-                                   class="form-input-sced"
-                                   placeholder="Repita a senha"
-                                   required>
+                            {{-- FIX 5: Ícone do olho na confirmação --}}
+                            <div style="position:relative;">
+                                <input type="password" name="password_confirmation" id="senha_confirma"
+                                       class="form-input-sced"
+                                       placeholder="Repita a senha"
+                                       style="padding-right:44px;"
+                                       required>
+                                <button type="button"
+                                    onclick="toggleSenha('senha_confirma', this)"
+                                    style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;display:flex;align-items:center;padding:0;"
+                                    title="Mostrar/ocultar senha">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -64,10 +94,16 @@
                 <div class="form-group">
                     <label class="form-label-sced">Perfil de acesso *</label>
                     <select name="perfil" class="form-input-sced" required>
-                        <option value="operador"       {{ old('perfil')=='operador'       ? 'selected' : '' }}>👤 Operador — Registra e consulta documentos</option>
-                        <option value="administrador"  {{ old('perfil')=='administrador'  ? 'selected' : '' }}>👑 Administrador — Acesso completo ao sistema</option>
+                        <option value="operador"      {{ old('perfil')=='operador'      ? 'selected' : '' }}>
+                            👤 Operador — Registra e consulta documentos
+                        </option>
+                        <option value="administrador" {{ old('perfil')=='administrador' ? 'selected' : '' }}>
+                            👑 Administrador — Acesso completo ao sistema
+                        </option>
                     </select>
-                    @error('perfil') <div class="form-error">{{ $message }}</div> @enderror
+                    @error('perfil')
+                        <div class="form-error">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px; padding-top:20px; border-top:1px solid var(--cinza-200);">

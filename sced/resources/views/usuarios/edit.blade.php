@@ -1,6 +1,4 @@
-{{-- ============================================================
-     Arquivo: resources/views/usuarios/edit.blade.php
-     ============================================================ --}}
+{{-- resources/views/usuarios/edit.blade.php --}}
 @extends('layouts.app')
 @section('title', 'Editar Usuário')
 @section('subtitle', $usuario->nome)
@@ -26,7 +24,9 @@
                            class="form-input-sced {{ $errors->has('nome') ? 'is-invalid' : '' }}"
                            value="{{ old('nome', $usuario->nome) }}"
                            required>
-                    @error('nome') <div class="form-error">{{ $message }}</div> @enderror
+                    @error('nome')
+                        <div class="form-error">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div class="form-group">
@@ -36,6 +36,53 @@
                            style="opacity:0.6; cursor:not-allowed;">
                     <div style="font-size:11px; color:var(--cinza-400); margin-top:4px;">
                         O e-mail não pode ser alterado.
+                    </div>
+                </div>
+
+                {{-- FIX 5: Ícone do olho nos campos de senha --}}
+                <div class="row g-3" style="margin-bottom: 4px;">
+                    <div class="col-12 col-md-6">
+                        <div class="form-group">
+                            <label class="form-label-sced">Nova senha</label>
+                            <div style="position:relative;">
+                                <input type="password" name="password" id="edit_senha"
+                                       class="form-input-sced {{ $errors->has('password') ? 'is-invalid' : '' }}"
+                                       placeholder="Deixe em branco para não alterar"
+                                       style="padding-right:44px;">
+                                <button type="button"
+                                    onclick="toggleSenha('edit_senha', this)"
+                                    style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;display:flex;align-items:center;padding:0;"
+                                    title="Mostrar/ocultar senha">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            @error('password')
+                                <div class="form-error">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="form-group">
+                            <label class="form-label-sced">Confirmar nova senha</label>
+                            <div style="position:relative;">
+                                <input type="password" name="password_confirmation" id="edit_confirma"
+                                       class="form-input-sced"
+                                       placeholder="Repita a nova senha"
+                                       style="padding-right:44px;">
+                                <button type="button"
+                                    onclick="toggleSenha('edit_confirma', this)"
+                                    style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;display:flex;align-items:center;padding:0;"
+                                    title="Mostrar/ocultar senha">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -60,7 +107,7 @@
                     </div>
                 </div>
 
-                <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px; padding-top:20px; border-top:1px solid var(--cinza-200);">
+                <div style="display:flex; gap:12px; justify-content:flex-end; padding-top:20px; border-top:1px solid var(--cinza-200);">
                     <a href="{{ route('usuarios.index') }}" class="btn-secondary-sced">Cancelar</a>
                     <button type="submit" class="btn-primary-sced">💾 Salvar Alterações</button>
                 </div>
