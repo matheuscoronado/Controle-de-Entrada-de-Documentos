@@ -1,11 +1,10 @@
 /* ============================================================
    SCED — Sistema de Controle de Entrada de Documentos
-   Arquivo: public/css/sced.css
+   public/css/sced.css — Versão corrigida
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* ── Variáveis de cor ── */
 :root {
   --azul-escuro:   #0f2744;
   --azul-medio:    #1a3f6f;
@@ -29,15 +28,20 @@
   --transicao:     all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Reset e base ── */
 *, *::before, *::after { box-sizing: border-box; }
+
+/* FIX 6: html e body sem overflow para que o scroll funcione corretamente */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
 
 body {
   font-family: 'Sora', sans-serif;
   background: var(--cinza-100);
   color: var(--cinza-800);
-  margin: 0;
-  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* ── SIDEBAR ── */
@@ -51,12 +55,13 @@ body {
   flex-direction: column;
   z-index: 100;
   box-shadow: 4px 0 20px rgba(0,0,0,0.15);
-  transition: var(--transicao);
+  overflow-y: auto;
 }
 
 .sidebar-logo {
   padding: 28px 24px 20px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
 }
 
 .sidebar-logo .logo-icon {
@@ -142,6 +147,7 @@ body {
 .sidebar-footer {
   padding: 16px 12px;
   border-top: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
 }
 
 .user-info {
@@ -195,6 +201,7 @@ body {
 }
 
 /* ── CONTEÚDO PRINCIPAL ── */
+/* FIX 6: main-content ocupa o restante e tem scroll próprio */
 .main-content {
   margin-left: 260px;
   min-height: 100vh;
@@ -202,6 +209,7 @@ body {
   flex-direction: column;
 }
 
+/* FIX 6: Topbar FIXO no topo da área de conteúdo */
 .topbar {
   background: var(--branco);
   border-bottom: 1px solid var(--cinza-200);
@@ -212,6 +220,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 50;
+  flex-shrink: 0;
 }
 
 .topbar-title {
@@ -226,9 +235,11 @@ body {
   margin-top: 1px;
 }
 
+/* FIX 6: page-body com scroll independente */
 .page-body {
   padding: 28px 32px;
   flex: 1;
+  overflow-y: auto;
 }
 
 /* ── CARDS ── */
@@ -255,7 +266,7 @@ body {
   padding: 20px 24px 24px;
 }
 
-/* ── CARDS DE STAT (dashboard) ── */
+/* ── CARDS DE STAT ── */
 .stat-card {
   background: var(--branco);
   border-radius: var(--radius);
@@ -489,7 +500,7 @@ body {
 .alert-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
 .alert-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
 
-/* ── LINHA DO TEMPO (histórico) ── */
+/* ── LINHA DO TEMPO ── */
 .timeline { list-style: none; padding: 0; margin: 0; }
 
 .timeline-item {
