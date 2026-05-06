@@ -23,18 +23,24 @@ class UsuarioController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nome'   => 'required|string|max:255',
-            'email'  => 'required|email|unique:users',
-            'password' => 'required|min:6|confirmed',
-            'perfil' => 'required|in:administrador,operador',
+            'nome'         => 'required|string|max:255',
+            'email'        => 'required|email|unique:users',
+            'password'     => 'required|min:6|confirmed',
+            'perfil'       => 'required|in:administrador,operador',
+            // Validação dos novos campos
+            'departamento' => 'required|in:RH,COMERCIAL,SUPORTE',
+            'cargo'        => 'required|in:N1,N2,N3',
         ]);
 
         $user = User::create([
-            'nome'     => $request->nome,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-            'perfil'   => $request->perfil,
-            'status'   => 'ativo',
+            'nome'         => $request->nome,
+            'email'        => $request->email,
+            'password'     => Hash::make($request->password),
+            'perfil'       => $request->perfil,
+            'status'       => 'ativo',
+            // Gravando os novos campos
+            'departamento' => $request->departamento,
+            'cargo'        => $request->cargo,
         ]);
 
         LogAuditoria::create([
@@ -56,12 +62,16 @@ class UsuarioController extends Controller
     public function update(Request $request, User $usuario)
     {
         $request->validate([
-            'nome'   => 'required|string|max:255',
-            'perfil' => 'required|in:administrador,operador',
-            'status' => 'required|in:ativo,inativo',
+            'nome'         => 'required|string|max:255',
+            'perfil'       => 'required|in:administrador,operador',
+            'status'       => 'required|in:ativo,inativo',
+            // Validação na edição também
+            'departamento' => 'required|in:RH,COMERCIAL,SUPORTE',
+            'cargo'        => 'required|in:N1,N2,N3',
         ]);
 
-        $usuario->update($request->only('nome', 'perfil', 'status'));
+        // Atualizando incluindo os novos campos
+        $usuario->update($request->only('nome', 'perfil', 'status', 'departamento', 'cargo'));
 
         return redirect()->route('usuarios.index')->with('success', 'Usuário atualizado!');
     }

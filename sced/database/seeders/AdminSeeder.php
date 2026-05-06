@@ -11,11 +11,14 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         User::create([
-            'nome'     => 'Administrador',
-            'email'    => 'admin@sced.com',
-            'password' => Hash::make('admin123'),
-            'perfil'   => 'administrador',
-            'status'   => 'ativo',
+            'nome'         => 'Administrador',
+            'email'        => 'admin@sced.com',
+            'password'     => Hash::make('admin123'),
+            'perfil'       => 'administrador',
+            'status'       => 'ativo',
+            // Adicionando as novas colunas:
+            'departamento' => 'SUPORTE', 
+            'cargo'        => 'N3',
         ]);
     }
 }

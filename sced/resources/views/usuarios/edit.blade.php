@@ -39,7 +39,6 @@
                     </div>
                 </div>
 
-                {{-- FIX 5: Ícone do olho nos campos de senha --}}
                 <div class="row g-3" style="margin-bottom: 4px;">
                     <div class="col-12 col-md-6">
                         <div class="form-group">
@@ -107,7 +106,37 @@
                     </div>
                 </div>
 
-                <div style="display:flex; gap:12px; justify-content:flex-end; padding-top:20px; border-top:1px solid var(--cinza-200);">
+                {{-- NOVOS CAMPOS: Departamento e Cargo --}}
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <div class="form-group">
+                            <label class="form-label-sced">Departamento *</label>
+                            <select name="departamento" class="form-input-sced" required>
+                                <option value="RH" {{ old('departamento', $usuario->departamento) == 'RH' ? 'selected' : '' }}>🏢 RH</option>
+                                <option value="COMERCIAL" {{ old('departamento', $usuario->departamento) == 'COMERCIAL' ? 'selected' : '' }}>💼 Comercial</option>
+                                <option value="SUPORTE" {{ old('departamento', $usuario->departamento) == 'SUPORTE' ? 'selected' : '' }}>🛠️ Suporte</option>
+                            </select>
+                            @error('departamento')
+                                <div class="form-error">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="form-group">
+                            <label class="form-label-sced">Cargo *</label>
+                            <select name="cargo" class="form-input-sced" required>
+                                <option value="N1" {{ old('cargo', $usuario->cargo) == 'N1' ? 'selected' : '' }}>Nivel 1 (N1)</option>
+                                <option value="N2" {{ old('cargo', $usuario->cargo) == 'N2' ? 'selected' : '' }}>Nivel 2 (N2)</option>
+                                <option value="N3" {{ old('cargo', $usuario->cargo) == 'N3' ? 'selected' : '' }}>Nivel 3 (N3)</option>
+                            </select>
+                            @error('cargo')
+                                <div class="form-error">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:12px; justify-content:flex-end; padding-top:20px; border-top:1px solid var(--cinza-200); margin-top: 20px;">
                     <a href="{{ route('usuarios.index') }}" class="btn-secondary-sced">Cancelar</a>
                     <button type="submit" class="btn-primary-sced">💾 Salvar Alterações</button>
                 </div>
@@ -115,4 +144,14 @@
         </div>
     </div>
 </div>
+
+<script>
+    function toggleSenha(id, btn) {
+        const input = document.getElementById(id);
+        const type = input.type === 'password' ? 'text' : 'password';
+        input.type = type;
+        // Opcional: mudar a cor do ícone quando ativo
+        btn.style.color = type === 'text' ? 'var(--azul-primario)' : '#94a3b8';
+    }
+</script>
 @endsection

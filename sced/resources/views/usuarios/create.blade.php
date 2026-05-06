@@ -45,7 +45,6 @@
                     <div class="col-12 col-md-6">
                         <div class="form-group">
                             <label class="form-label-sced">Senha *</label>
-                            {{-- FIX 5: Ícone do olho na senha --}}
                             <div style="position:relative;">
                                 <input type="password" name="password" id="senha_nova"
                                        class="form-input-sced {{ $errors->has('password') ? 'is-invalid' : '' }}"
@@ -70,7 +69,6 @@
                     <div class="col-12 col-md-6">
                         <div class="form-group">
                             <label class="form-label-sced">Confirmar Senha *</label>
-                            {{-- FIX 5: Ícone do olho na confirmação --}}
                             <div style="position:relative;">
                                 <input type="password" name="password_confirmation" id="senha_confirma"
                                        class="form-input-sced"
@@ -106,6 +104,38 @@
                     @enderror
                 </div>
 
+                {{-- NOVOS CAMPOS ADICIONADOS AQUI --}}
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <div class="form-group">
+                            <label class="form-label-sced">Departamento *</label>
+                            <select name="departamento" class="form-input-sced" required>
+                                <option value="" disabled {{ old('departamento') ? '' : 'selected' }}>Selecione o departamento</option>
+                                <option value="RH" {{ old('departamento') == 'RH' ? 'selected' : '' }}>🏢 RH</option>
+                                <option value="COMERCIAL" {{ old('departamento') == 'COMERCIAL' ? 'selected' : '' }}>💼 Comercial</option>
+                                <option value="SUPORTE" {{ old('departamento') == 'SUPORTE' ? 'selected' : '' }}>🛠️ Suporte</option>
+                            </select>
+                            @error('departamento')
+                                <div class="form-error">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="form-group">
+                            <label class="form-label-sced">Cargo *</label>
+                            <select name="cargo" class="form-input-sced" required>
+                                <option value="" disabled {{ old('cargo') ? '' : 'selected' }}>Selecione o nível</option>
+                                <option value="N1" {{ old('cargo') == 'N1' ? 'selected' : '' }}>Nivel 1 (N1)</option>
+                                <option value="N2" {{ old('cargo') == 'N2' ? 'selected' : '' }}>Nivel 2 (N2)</option>
+                                <option value="N3" {{ old('cargo') == 'N3' ? 'selected' : '' }}>Nivel 3 (N3)</option>
+                            </select>
+                            @error('cargo')
+                                <div class="form-error">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+
                 <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px; padding-top:20px; border-top:1px solid var(--cinza-200);">
                     <a href="{{ route('usuarios.index') }}" class="btn-secondary-sced">Cancelar</a>
                     <button type="submit" class="btn-primary-sced">💾 Cadastrar Usuário</button>
@@ -114,4 +144,13 @@
         </div>
     </div>
 </div>
+
+<script>
+    function toggleSenha(id, btn) {
+        const input = document.getElementById(id);
+        const type = input.type === 'password' ? 'text' : 'password';
+        input.type = type;
+        btn.style.color = type === 'text' ? 'var(--azul-primario)' : '#94a3b8';
+    }
+</script>
 @endsection
