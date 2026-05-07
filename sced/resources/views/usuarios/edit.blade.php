@@ -106,15 +106,18 @@
                     </div>
                 </div>
 
-                {{-- NOVOS CAMPOS: Departamento e Cargo --}}
+                {{-- NOVOS CAMPOS DINÂMICOS: Departamento e Cargo --}}
                 <div class="row g-3">
                     <div class="col-12 col-md-6">
                         <div class="form-group">
                             <label class="form-label-sced">Departamento *</label>
                             <select name="departamento" class="form-input-sced" required>
-                                <option value="RH" {{ old('departamento', $usuario->departamento) == 'RH' ? 'selected' : '' }}>🏢 RH</option>
-                                <option value="COMERCIAL" {{ old('departamento', $usuario->departamento) == 'COMERCIAL' ? 'selected' : '' }}>💼 Comercial</option>
-                                <option value="SUPORTE" {{ old('departamento', $usuario->departamento) == 'SUPORTE' ? 'selected' : '' }}>🛠️ Suporte</option>
+                                @foreach($departamentos as $depto)
+                                    <option value="{{ $depto->nome }}" 
+                                        {{ old('departamento', $usuario->departamento) == $depto->nome ? 'selected' : '' }}>
+                                        🏢 {{ $depto->nome }}
+                                    </option>
+                                @endforeach
                             </select>
                             @error('departamento')
                                 <div class="form-error">{{ $message }}</div>
@@ -150,7 +153,6 @@
         const input = document.getElementById(id);
         const type = input.type === 'password' ? 'text' : 'password';
         input.type = type;
-        // Opcional: mudar a cor do ícone quando ativo
         btn.style.color = type === 'text' ? 'var(--azul-primario)' : '#94a3b8';
     }
 </script>

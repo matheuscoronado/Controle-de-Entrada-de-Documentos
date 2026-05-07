@@ -92,7 +92,7 @@
                 <div class="form-group">
                     <label class="form-label-sced">Perfil de acesso *</label>
                     <select name="perfil" class="form-input-sced" required>
-                        <option value="operador"      {{ old('perfil')=='operador'      ? 'selected' : '' }}>
+                        <option value="operador" {{ old('perfil')=='operador' ? 'selected' : '' }}>
                             👤 Operador — Registra e consulta documentos
                         </option>
                         <option value="administrador" {{ old('perfil')=='administrador' ? 'selected' : '' }}>
@@ -104,16 +104,19 @@
                     @enderror
                 </div>
 
-                {{-- NOVOS CAMPOS ADICIONADOS AQUI --}}
+                {{-- NOVOS CAMPOS DINÂMICOS --}}
                 <div class="row g-3">
                     <div class="col-12 col-md-6">
                         <div class="form-group">
                             <label class="form-label-sced">Departamento *</label>
                             <select name="departamento" class="form-input-sced" required>
                                 <option value="" disabled {{ old('departamento') ? '' : 'selected' }}>Selecione o departamento</option>
-                                <option value="RH" {{ old('departamento') == 'RH' ? 'selected' : '' }}>🏢 RH</option>
-                                <option value="COMERCIAL" {{ old('departamento') == 'COMERCIAL' ? 'selected' : '' }}>💼 Comercial</option>
-                                <option value="SUPORTE" {{ old('departamento') == 'SUPORTE' ? 'selected' : '' }}>🛠️ Suporte</option>
+                                {{-- LAÇO PARA BUSCAR DO BANCO --}}
+                                @foreach($departamentos as $depto)
+                                    <option value="{{ $depto->nome }}" {{ old('departamento') == $depto->nome ? 'selected' : '' }}>
+                                        🏢 {{ $depto->nome }}
+                                    </option>
+                                @endforeach
                             </select>
                             @error('departamento')
                                 <div class="form-error">{{ $message }}</div>

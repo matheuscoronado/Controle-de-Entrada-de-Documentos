@@ -5,6 +5,7 @@ use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\TipoDocumentoController;
 use App\Http\Controllers\RelatorioController;
+use App\Http\Controllers\DepartamentoController; // Importado o novo controller
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -13,14 +14,13 @@ Route::get('/', function () {
 
 Route::middleware(['auth'])->group(function () {
 
-    // FIX 2: Dashboard agora passa $recentes corretamente
+    // Dashboard
     Route::get('/dashboard', function () {
-        $total    = \App\Models\Documento::count();
+        $total     = \App\Models\Documento::count();
         $porStatus = \App\Models\Documento::selectRaw('status, count(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');
 
-        // Busca os 8 documentos mais recentes com relacionamentos
         $recentes = \App\Models\Documento::with(['tipoDocumento'])
             ->orderBy('created_at', 'desc')
             ->limit(8)
@@ -36,15 +36,17 @@ Route::middleware(['auth'])->group(function () {
     // Tipos de Documento
     Route::resource('tipos', TipoDocumentoController::class)->except(['show', 'destroy']);
 
-    // Relatórios (só admin)
+    // Área Administrativa (Apenas Admin)
     Route::middleware('admin')->group(function () {
+        // Departamentos (O que você pediu)
+        Route::resource('departamentos', DepartamentoController::class);
+
+        // Usuários
+        Route::resource('usuarios', UsuarioController::class);
+
+        // Relatórios
         Route::get('/relatorios', [RelatorioController::class, 'index'])->name('relatorios.index');
         Route::post('/relatorios/gerar', [RelatorioController::class, 'gerar'])->name('relatorios.gerar');
-    });
-
-    // Usuários (só admin)
-    Route::middleware('admin')->group(function () {
-        Route::resource('usuarios', UsuarioController::class);
     });
 
 });

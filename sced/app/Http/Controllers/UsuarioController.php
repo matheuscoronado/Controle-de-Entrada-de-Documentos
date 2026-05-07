@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\LogAuditoria;
+use App\Models\Departamento; // IMPORTANTE: Importar o novo Model
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -17,7 +18,9 @@ class UsuarioController extends Controller
 
     public function create()
     {
-        return view('usuarios.create');
+        // Busca todos os departamentos para o select na View
+        $departamentos = Departamento::orderBy('nome', 'asc')->get();
+        return view('usuarios.create', compact('departamentos'));
     }
 
     public function store(Request $request)
@@ -27,8 +30,8 @@ class UsuarioController extends Controller
             'email'        => 'required|email|unique:users',
             'password'     => 'required|min:6|confirmed',
             'perfil'       => 'required|in:administrador,operador',
-            // Validação dos novos campos
-            'departamento' => 'required|in:RH,COMERCIAL,SUPORTE',
+            // Agora validamos se o departamento existe na tabela de departamentos
+            'departamento' => 'required|exists:departamentos,nome',
             'cargo'        => 'required|in:N1,N2,N3',
         ]);
 
@@ -38,7 +41,6 @@ class UsuarioController extends Controller
             'password'     => Hash::make($request->password),
             'perfil'       => $request->perfil,
             'status'       => 'ativo',
-            // Gravando os novos campos
             'departamento' => $request->departamento,
             'cargo'        => $request->cargo,
         ]);
@@ -56,7 +58,9 @@ class UsuarioController extends Controller
 
     public function edit(User $usuario)
     {
-        return view('usuarios.edit', compact('usuario'));
+        // Busca os departamentos para permitir a troca na edição
+        $departamentos = Departamento::orderBy('nome', 'asc')->get();
+        return view('usuarios.edit', compact('usuario', 'departamentos'));
     }
 
     public function update(Request $request, User $usuario)
@@ -65,12 +69,10 @@ class UsuarioController extends Controller
             'nome'         => 'required|string|max:255',
             'perfil'       => 'required|in:administrador,operador',
             'status'       => 'required|in:ativo,inativo',
-            // Validação na edição também
-            'departamento' => 'required|in:RH,COMERCIAL,SUPORTE',
+            'departamento' => 'required|exists:departamentos,nome',
             'cargo'        => 'required|in:N1,N2,N3',
         ]);
 
-        // Atualizando incluindo os novos campos
         $usuario->update($request->only('nome', 'perfil', 'status', 'departamento', 'cargo'));
 
         return redirect()->route('usuarios.index')->with('success', 'Usuário atualizado!');
