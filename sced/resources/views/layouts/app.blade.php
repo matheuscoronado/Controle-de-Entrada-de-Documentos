@@ -28,13 +28,11 @@
             <span class="nav-icon">🏠</span> Dashboard
         </a>
 
-        {{-- FIX 1: Documentos só fica ativo em index e show, NÃO em create --}}
         <a href="{{ route('documentos.index') }}"
            class="sidebar-link {{ request()->routeIs('documentos.index') || request()->routeIs('documentos.show') ? 'active' : '' }}">
             <span class="nav-icon">📄</span> Documentos
         </a>
 
-        {{-- FIX 1: Novo Documento fica ativo apenas em create --}}
         <a href="{{ route('documentos.create') }}"
            class="sidebar-link {{ request()->routeIs('documentos.create') ? 'active' : '' }}">
             <span class="nav-icon">➕</span> Novo Documento
@@ -56,6 +54,12 @@
         <a href="{{ route('relatorios.index') }}"
            class="sidebar-link {{ request()->routeIs('relatorios.*') ? 'active' : '' }}">
             <span class="nav-icon">📊</span> Relatórios
+        </a>
+
+        {{-- ITEM ADICIONADO: DEPARTAMENTOS --}}
+        <a href="{{ route('departamentos.index') }}"
+           class="sidebar-link {{ request()->routeIs('departamentos.*') ? 'active' : '' }}">
+            <span class="nav-icon">🏢</span> Departamentos
         </a>
         @endif
 
@@ -84,7 +88,7 @@
 
 <div class="main-content">
 
-    {{-- FIX 6: Topbar sticky fixo no topo --}}
+    {{-- Topbar sticky fixo no topo --}}
     <div class="topbar">
         <div>
             <div class="topbar-title">@yield('title', 'Dashboard')</div>
@@ -114,7 +118,7 @@
         </div>
     @endif
 
-    {{-- FIX 6: Conteúdo com scroll independente --}}
+    {{-- Conteúdo com scroll independente --}}
     <div class="page-body">
         @yield('content')
     </div>
@@ -123,7 +127,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-{{-- FIX 5: Função global para toggle de senha --}}
+{{-- Função global para toggle de senha --}}
 <script>
 function toggleSenha(inputId, btn) {
     const input = document.getElementById(inputId);
