@@ -42,11 +42,10 @@
                     
                     <td>
                         <span style="font-size:13px; color:var(--azul-escuro); font-weight:500;">
-                            <?php echo e($usuario->departamento ?? '—'); ?>
+                            <?php echo e($usuario->departamentoRelacionado->nome ?? '—'); ?>
 
                         </span>
                     </td>
-                    
                     <td>
                         <span style="background:var(--cinza-100); color:var(--azul-escuro); padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700; border:1px solid var(--cinza-200);">
                             <?php echo e($usuario->cargo ?? '—'); ?>

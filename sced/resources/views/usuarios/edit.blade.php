@@ -106,20 +106,23 @@
                     </div>
                 </div>
 
-                {{-- NOVOS CAMPOS DINÂMICOS: Departamento e Cargo --}}
+                {{-- BLOCO CORRIGIDO: Departamento e Cargo --}}
                 <div class="row g-3">
                     <div class="col-12 col-md-6">
                         <div class="form-group">
                             <label class="form-label-sced">Departamento *</label>
-                            <select name="departamento" class="form-input-sced" required>
+                            {{-- Alterado o name para departamento_id --}}
+                            <select name="departamento_id" class="form-input-sced" required>
+                                <option value="">Selecione um departamento</option>
                                 @foreach($departamentos as $depto)
-                                    <option value="{{ $depto->nome }}" 
-                                        {{ old('departamento', $usuario->departamento) == $depto->nome ? 'selected' : '' }}>
+                                    {{-- O value agora é o ID numérico e a comparação usa departamento_id --}}
+                                    <option value="{{ $depto->id }}" 
+                                        {{ old('departamento_id', $usuario->departamento_id) == $depto->id ? 'selected' : '' }}>
                                         🏢 {{ $depto->nome }}
                                     </option>
                                 @endforeach
                             </select>
-                            @error('departamento')
+                            @error('departamento_id')
                                 <div class="form-error">{{ $message }}</div>
                             @enderror
                         </div>

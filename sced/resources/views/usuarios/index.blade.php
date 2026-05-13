@@ -40,13 +40,12 @@
                             </div>
                         </div>
                     </td>
-                    {{-- Nova Coluna: Departamento --}}
+                    {{-- Coluna Departamento: Corrigida para acessar o relacionamento --}}
                     <td>
                         <span style="font-size:13px; color:var(--azul-escuro); font-weight:500;">
-                            {{ $usuario->departamento ?? '—' }}
+                            {{ $usuario->departamentoRelacionado->nome ?? '—' }}
                         </span>
                     </td>
-                    {{-- Nova Coluna: Cargo --}}
                     <td>
                         <span style="background:var(--cinza-100); color:var(--azul-escuro); padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700; border:1px solid var(--cinza-200);">
                             {{ $usuario->cargo ?? '—' }}

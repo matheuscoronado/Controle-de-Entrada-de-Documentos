@@ -5,15 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo; // Importante para o relacionamento
 
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
+     * Atributos que podem ser preenchidos em massa.
      */
     protected $fillable = [
         'nome', 
@@ -21,19 +20,25 @@ class User extends Authenticatable
         'password', 
         'perfil', 
         'status', 
-        'departamento', // Campo adicionado
-        'cargo'         // Campo adicionado
+        'departamento_id', // ALTERADO: agora aponta para o ID da tabela departamentos
+        'cargo'
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
+     * Atributos ocultos.
      */
     protected $hidden = [
         'password', 
         'remember_token'
     ];
+
+    /**
+     * Relacionamento: O Usuário PERTENCE a um Departamento
+     */
+    public function departamentoRelacionado(): BelongsTo
+    {
+        return $this->belongsTo(Departamento::class, 'departamento_id');
+    }
 
     /**
      * Relacionamento: Documentos registrados pelo usuário
