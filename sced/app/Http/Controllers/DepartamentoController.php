@@ -8,11 +8,15 @@ use Illuminate\Http\Request;
 class DepartamentoController extends Controller
 {
     /**
-     * Exibe a lista de departamentos e o formulário de cadastro.
+     * Exibe a lista de departamentos com a contagem de usuários.
      */
     public function index()
     {
-        $departamentos = Departamento::orderBy('nome', 'asc')->get();
+        // O withCount('usuarios') cria o atributo virtual 'usuarios_count'
+        $departamentos = Departamento::withCount('usuarios')
+            ->orderBy('nome', 'asc')
+            ->get();
+
         return view('departamentos.index', compact('departamentos'));
     }
 
@@ -40,8 +44,7 @@ class DepartamentoController extends Controller
      */
     public function destroy(Departamento $departamento)
     {
-        // Aqui verificamos se existem usuários usando este depto antes de excluir
-        // Para isso funcionar, o relacionamento deve estar no Model Departamento
+        // Usamos o relacionamento para verificar a existência de usuários
         if ($departamento->usuarios()->count() > 0) {
             return redirect()->back()->with('error', 'Não é possível excluir: existem usuários neste departamento.');
         }

@@ -104,21 +104,22 @@
                     @enderror
                 </div>
 
-                {{-- NOVOS CAMPOS DINÂMICOS --}}
+                {{-- BLOCO CORRIGIDO: Departamento e Cargo --}}
                 <div class="row g-3">
                     <div class="col-12 col-md-6">
                         <div class="form-group">
                             <label class="form-label-sced">Departamento *</label>
-                            <select name="departamento" class="form-input-sced" required>
-                                <option value="" disabled {{ old('departamento') ? '' : 'selected' }}>Selecione o departamento</option>
-                                {{-- LAÇO PARA BUSCAR DO BANCO --}}
+                            {{-- Nome do campo alterado para departamento_id --}}
+                            <select name="departamento_id" class="form-input-sced" required>
+                                <option value="" disabled {{ old('departamento_id') ? '' : 'selected' }}>Selecione o departamento</option>
                                 @foreach($departamentos as $depto)
-                                    <option value="{{ $depto->nome }}" {{ old('departamento') == $depto->nome ? 'selected' : '' }}>
+                                    {{-- O valor agora é o ID numérico --}}
+                                    <option value="{{ $depto->id }}" {{ old('departamento_id') == $depto->id ? 'selected' : '' }}>
                                         🏢 {{ $depto->nome }}
                                     </option>
                                 @endforeach
                             </select>
-                            @error('departamento')
+                            @error('departamento_id')
                                 <div class="form-error">{{ $message }}</div>
                             @enderror
                         </div>

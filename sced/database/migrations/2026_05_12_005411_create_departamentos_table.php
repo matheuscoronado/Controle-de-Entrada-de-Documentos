@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('departamentos', function (Blueprint $table) {
             $table->id();
-            $table->string('nome')->unique(); // ADICIONE ESTA LINHA
+            $table->string('nome')->unique();
             $table->timestamps();
         });
     }

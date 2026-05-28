@@ -13,6 +13,11 @@ return new class extends Migration {
             $table->string('nome');
             $table->string('email')->unique();
             $table->string('password');
+            
+            // ADICIONE ESTAS DUAS LINHAS AQUI:
+            $table->unsignedBigInteger('departamento_id')->nullable(); 
+            $table->string('cargo')->nullable();
+
             $table->enum('perfil', ['administrador', 'operador'])->default('operador');
             $table->enum('status', ['ativo', 'inativo'])->default('ativo');
             $table->rememberToken();
