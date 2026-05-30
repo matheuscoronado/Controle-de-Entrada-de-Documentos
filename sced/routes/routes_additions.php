@@ -1,18 +1,4 @@
 <?php
-// ============================================================
-// routes/web.php — ADIÇÕES DA PARTE 1
-// Cole este trecho dentro do grupo middleware(['auth']) existente,
-// dentro da área administrativa (middleware 'admin').
-// ============================================================
-
-// Registrar os dois middlewares em bootstrap/app.php:
-//
-// ->withMiddleware(function (Middleware $middleware) {
-//     $middleware->alias([
-//         'admin' => \App\Http\Middleware\AdminMiddleware::class,
-//         'n3'    => \App\Http\Middleware\N3Middleware::class,
-//     ]);
-// })
 
 use App\Http\Controllers\LogAuditoriaController;
 use App\Http\Controllers\TipoDocumentoController;
@@ -41,4 +27,31 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('n3')->group(function () {
         // Ex: Route::get('/supervisao', ...) — reservado para Parte 2
     });
+});
+
+
+use App\Http\Controllers\Api\ServicoController;
+use Illuminate\Support\Facades\Route;
+
+Route::middleware('auth:sanctum')->group(function () {
+    // Se não usar Sanctum, troque por 'auth'
+    Route::get('/servicos/buscar',           [ServicoController::class, 'buscar']);
+    Route::get('/servicos/{id}/requisitos',  [ServicoController::class, 'requisitos']);
+});
+
+
+// ── routes/web.php (substituição das rotas de documentos) ─
+// Mantém as URLs /documentos/* para não quebrar links externos.
+
+use App\Http\Controllers\DocumentoController;
+
+Route::middleware(['auth'])->group(function () {
+
+    Route::resource('documentos', DocumentoController::class)
+         ->except(['edit', 'update', 'destroy']);
+
+    Route::patch('documentos/{documento}/status',
+        [DocumentoController::class, 'atualizarStatus']
+    )->name('documentos.status');
+
 });
