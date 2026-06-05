@@ -84,12 +84,14 @@
                     $totalGeral = \App\Models\Documento::count();
                 @endphp
                 @foreach($statusConfig as $key => $cfg)
-                @php $qtd = \App\Models\Documento::where('status', $key)->count(); @endphp
+                @php
+                    $qtd = \App\Models\Documento::where('status', $key)->count();
+                @endphp
                 <div class="col-6">
                     <div style="background:var(--cinza-100); border-radius:var(--radius-sm); padding:16px; display:flex; align-items:center; gap:12px;">
                         <span style="font-size:24px;">{{ $cfg['icon'] }}</span>
                         <div>
-                            <div style="font-size:22px; font-weight:700; color:{{ $cfg['color'] }};">{{ $qtd }}</div>
+                            <div class="status-count" data-color="{{ $cfg['color'] }}" style="font-size:22px; font-weight:700;">{{ $qtd }}</div>
                             <div style="font-size:12px; color:var(--cinza-600);">{{ $cfg['label'] }}</div>
                         </div>
                     </div>
@@ -108,3 +110,13 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.status-count[data-color]').forEach(function (el) {
+            el.style.color = el.dataset.color;
+        });
+    });
+</script>
+@endpush

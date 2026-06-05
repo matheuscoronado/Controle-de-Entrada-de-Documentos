@@ -56,8 +56,7 @@
             @php
                 $cores = \App\Models\Documento::STATUS_CORES[$documento->status] ?? [];
             @endphp
-            <span style="padding:8px 18px;border-radius:20px;font-size:14px;font-weight:700;
-                         background:{{ $cores['bg'] ?? '#f1f5f9' }};color:{{ $cores['color'] ?? '#64748b' }};">
+            <span class="status-badge" data-bg="{{ $cores['bg'] ?? '#f1f5f9' }}" data-color="{{ $cores['color'] ?? '#64748b' }}" style="padding:8px 18px;border-radius:20px;font-size:14px;font-weight:700;">
                 ● {{ $documento->label_status }}
             </span>
         </div>
@@ -235,9 +234,7 @@
                         $vColor = ['pendente'=>'#92400e','aprovado'=>'#065f46','rejeitado'=>'#991b1b'];
                         $vLabel = ['pendente'=>'⏳ Pendente','aprovado'=>'✅ Aprovado','rejeitado'=>'❌ Rejeitado'];
                     @endphp
-                    <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;
-                                 background:{{ $vBg[$anexo->status_validacao] }};
-                                 color:{{ $vColor[$anexo->status_validacao] }};">
+                    <span class="validation-badge" data-bg="{{ $vBg[$anexo->status_validacao] }}" data-color="{{ $vColor[$anexo->status_validacao] }}" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;">
                         {{ $vLabel[$anexo->status_validacao] }}
                     </span>
                     <a href="{{ Storage::url($anexo->caminho_arquivo) }}" target="_blank"
@@ -248,7 +245,7 @@
             {{-- Substituir anexo (solicitante, processo pendente) --}}
             @if(in_array('substituir_anexo', $acoes))
             <div class="substituir-wrap" id="sw-{{ $anexo->id }}">
-                <button type="button" class="btn-link-sced" onclick="toggleSubstituir({{ $anexo->id }})">
+                <button type="button" class="btn-link-sced" data-anexo-id="{{ $anexo->id }}" onclick="toggleSubstituir(this.dataset.anexoId)">
                     🔄 Substituir arquivo
                 </button>
                 <div class="substituir-form" id="sf-{{ $anexo->id }}" style="display:none;">
@@ -318,15 +315,13 @@
                     <div class="timeline-text">
                         @if($hist->status_anterior)
                             @php $ca = \App\Models\Documento::STATUS_CORES[$hist->status_anterior] ?? []; @endphp
-                            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;
-                                         background:{{ $ca['bg']??'#f1f5f9' }};color:{{ $ca['color']??'#64748b' }};">
+                            <span class="history-badge" data-bg="{{ $ca['bg'] ?? '#f1f5f9' }}" data-color="{{ $ca['color'] ?? '#64748b' }}" style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;">
                                 {{ \App\Models\Documento::STATUS[$hist->status_anterior] ?? $hist->status_anterior }}
                             </span>
                             →
                         @endif
                         @php $cn = \App\Models\Documento::STATUS_CORES[$hist->status_novo] ?? []; @endphp
-                        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;
-                                     background:{{ $cn['bg']??'#f1f5f9' }};color:{{ $cn['color']??'#64748b' }};">
+                        <span class="history-badge" data-bg="{{ $cn['bg'] ?? '#f1f5f9' }}" data-color="{{ $cn['color'] ?? '#64748b' }}" style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;">
                             {{ \App\Models\Documento::STATUS[$hist->status_novo] ?? $hist->status_novo }}
                         </span>
                     </div>
@@ -474,6 +469,21 @@
 
 .mb-3 { margin-bottom:12px; }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.status-badge, .validation-badge, .history-badge').forEach(function(el) {
+        if (el.dataset.bg) {
+            el.style.background = el.dataset.bg;
+        }
+        if (el.dataset.color) {
+            el.style.color = el.dataset.color;
+        }
+    });
+});
+</script>
 @endpush
 
 @push('scripts')
