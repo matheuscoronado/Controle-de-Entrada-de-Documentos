@@ -44,7 +44,6 @@ unset($__errorArgs, $__bag); ?>
                     </div>
                 </div>
 
-                
                 <div class="row g-3" style="margin-bottom: 4px;">
                     <div class="col-12 col-md-6">
                         <div class="form-group">
@@ -119,7 +118,58 @@ unset($__errorArgs, $__bag); ?>
                     </div>
                 </div>
 
-                <div style="display:flex; gap:12px; justify-content:flex-end; padding-top:20px; border-top:1px solid var(--cinza-200);">
+                
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <div class="form-group">
+                            <label class="form-label-sced">Departamento *</label>
+                            
+                            <select name="departamento_id" class="form-input-sced" required>
+                                <option value="">Selecione um departamento</option>
+                                <?php $__currentLoopData = $departamentos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $depto): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    
+                                    <option value="<?php echo e($depto->id); ?>" 
+                                        <?php echo e(old('departamento_id', $usuario->departamento_id) == $depto->id ? 'selected' : ''); ?>>
+                                        🏢 <?php echo e($depto->nome); ?>
+
+                                    </option>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            </select>
+                            <?php $__errorArgs = ['departamento_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="form-error"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="form-group">
+                            <label class="form-label-sced">Cargo *</label>
+                            <select name="cargo" class="form-input-sced" required>
+                                <option value="N1" <?php echo e(old('cargo', $usuario->cargo) == 'N1' ? 'selected' : ''); ?>>Nivel 1 (N1)</option>
+                                <option value="N2" <?php echo e(old('cargo', $usuario->cargo) == 'N2' ? 'selected' : ''); ?>>Nivel 2 (N2)</option>
+                                <option value="N3" <?php echo e(old('cargo', $usuario->cargo) == 'N3' ? 'selected' : ''); ?>>Nivel 3 (N3)</option>
+                            </select>
+                            <?php $__errorArgs = ['cargo'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="form-error"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:12px; justify-content:flex-end; padding-top:20px; border-top:1px solid var(--cinza-200); margin-top: 20px;">
                     <a href="<?php echo e(route('usuarios.index')); ?>" class="btn-secondary-sced">Cancelar</a>
                     <button type="submit" class="btn-primary-sced">💾 Salvar Alterações</button>
                 </div>
@@ -127,6 +177,14 @@ unset($__errorArgs, $__bag); ?>
         </div>
     </div>
 </div>
-<?php $__env->stopSection(); ?>
 
+<script>
+    function toggleSenha(id, btn) {
+        const input = document.getElementById(id);
+        const type = input.type === 'password' ? 'text' : 'password';
+        input.type = type;
+        btn.style.color = type === 'text' ? 'var(--azul-primario)' : '#94a3b8';
+    }
+</script>
+<?php $__env->stopSection(); ?>
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\Controle-de-Entrada-de-Documentos\sced\resources\views/usuarios/edit.blade.php ENDPATH**/ ?>

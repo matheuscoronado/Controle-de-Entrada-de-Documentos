@@ -1,51 +1,26 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class TipoDocumento extends Model
 {
-    protected $fillable = [
-        'nome',
-        'descricao',
-        'obrigatoriedade',
-        'departamento_destino_id',
-        'cargo_responsavel',
-        'sla_horas',
-        'status',
-    ];
+    protected $fillable = ['nome','descricao','status','obrigatoriedade','departamento_destino_id','cargo_responsavel','sla_horas'];
 
-    // ── Relacionamentos ──────────────────────────────────────
+    public function documentos()          { return $this->hasMany(Documento::class); }
+    public function departamentoDestino() { return $this->belongsTo(Departamento::class, 'departamento_destino_id'); }
 
-    public function documentos()
+    public function getLabelSlaAttribute(): string
     {
-        return $this->hasMany(Documento::class);
-    }
-
-    public function departamentoDestino()
-    {
-        return $this->belongsTo(Departamento::class, 'departamento_destino_id');
-    }
-
-    // ── Helpers ──────────────────────────────────────────────
-
-    public function isObrigatorio(): bool
-    {
-        return $this->obrigatoriedade === 'obrigatorio';
+        if (!$this->sla_horas) return '—';
+        if ($this->sla_horas < 24) return "{$this->sla_horas}h";
+        $dias = intdiv($this->sla_horas, 24);
+        $h    = $this->sla_horas % 24;
+        return $h > 0 ? "{$dias}d {$h}h" : "{$dias} dia(s)";
     }
 
     public function getLabelObrigatoriedadeAttribute(): string
     {
         return $this->obrigatoriedade === 'obrigatorio' ? 'Obrigatório' : 'Opcional';
-    }
-
-    public function getLabelSlaAttribute(): string
-    {
-        if (! $this->sla_horas) return '—';
-        if ($this->sla_horas < 24) return "{$this->sla_horas}h";
-        $dias = intdiv($this->sla_horas, 24);
-        $horas = $this->sla_horas % 24;
-        return $horas > 0 ? "{$dias}d {$horas}h" : "{$dias} dia(s)";
     }
 }

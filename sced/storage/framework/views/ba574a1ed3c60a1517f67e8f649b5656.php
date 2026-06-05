@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SCED — Login</title>
     <link rel="stylesheet" href="<?php echo e(asset('css/sced.css')); ?>">
+
+    
+    <style>
+        .login-page {
+            width: 100vw;
+            flex-shrink: 0;
+        }
+    </style>
 </head>
 <body>
 
@@ -18,6 +26,7 @@
             <p>Sistema de Controle de Entrada de Documentos</p>
         </div>
 
+        
         <?php if($errors->any()): ?>
             <div class="alert-sced alert-error" style="margin-bottom: 20px;">
                 ⚠️ <?php echo e($errors->first()); ?>
@@ -25,6 +34,7 @@
             </div>
         <?php endif; ?>
 
+        
         <?php if(session('status')): ?>
             <div class="alert-sced alert-success">
                 ✅ <?php echo e(session('status')); ?>
@@ -35,6 +45,7 @@
         <form method="POST" action="<?php echo e(route('login')); ?>">
             <?php echo csrf_field(); ?>
 
+            
             <div class="form-group">
                 <label class="form-label-sced">E-mail</label>
                 <input
@@ -50,7 +61,7 @@
             </div>
 
             
-            <div class="form-group">
+            <div class="form-group" style="margin-top: 16px;">
                 <label class="form-label-sced">Senha</label>
                 <div style="position: relative;">
                     <input
@@ -74,7 +85,8 @@
                 </div>
             </div>
 
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+            
+            <div style="display:flex; align-items:center; justify-content:space-between; margin: 20px 0 24px;">
                 <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--cinza-600); cursor:pointer;">
                     <input type="checkbox" name="remember"> Manter conectado
                 </label>
@@ -101,5 +113,4 @@ function toggleSenha(inputId, btn) {
 </script>
 
 </body>
-</html>
-<?php /**PATH C:\xampp\htdocs\Controle-de-Entrada-de-Documentos\sced\resources\views/auth/login.blade.php ENDPATH**/ ?>
+</html><?php /**PATH C:\xampp\htdocs\Controle-de-Entrada-de-Documentos\sced\resources\views/auth/login.blade.php ENDPATH**/ ?>

@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SCED — Login</title>
     <link rel="stylesheet" href="{{ asset('css/sced.css') }}">
+
+    {{-- Corrige o conflito do display:flex do body na página de login --}}
+    <style>
+        .login-page {
+            width: 100vw;
+            flex-shrink: 0;
+        }
+    </style>
 </head>
 <body>
 
@@ -18,12 +26,14 @@
             <p>Sistema de Controle de Entrada de Documentos</p>
         </div>
 
+        {{-- Exibição de Erros de Autenticação --}}
         @if($errors->any())
             <div class="alert-sced alert-error" style="margin-bottom: 20px;">
                 ⚠️ {{ $errors->first() }}
             </div>
         @endif
 
+        {{-- Mensagens de Status de Sessão --}}
         @if(session('status'))
             <div class="alert-sced alert-success">
                 ✅ {{ session('status') }}
@@ -33,6 +43,7 @@
         <form method="POST" action="{{ route('login') }}">
             @csrf
 
+            {{-- Campo E-mail --}}
             <div class="form-group">
                 <label class="form-label-sced">E-mail</label>
                 <input
@@ -47,8 +58,8 @@
                 >
             </div>
 
-            {{-- FIX 5: Campo senha com ícone do olho --}}
-            <div class="form-group">
+            {{-- Campo Senha com ícone do olho --}}
+            <div class="form-group" style="margin-top: 16px;">
                 <label class="form-label-sced">Senha</label>
                 <div style="position: relative;">
                     <input
@@ -72,7 +83,8 @@
                 </div>
             </div>
 
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+            {{-- Manter Conectado --}}
+            <div style="display:flex; align-items:center; justify-content:space-between; margin: 20px 0 24px;">
                 <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--cinza-600); cursor:pointer;">
                     <input type="checkbox" name="remember"> Manter conectado
                 </label>
