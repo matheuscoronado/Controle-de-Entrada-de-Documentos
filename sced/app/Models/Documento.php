@@ -2,6 +2,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Documento extends Model
 {
@@ -41,10 +42,18 @@ class Documento extends Model
     public function isDesativado(): bool { return $this->status === 'desativado'; }
     public function isEditavel(): bool   { return in_array($this->status, ['novo','pendente']); }
 
+    /**
+     * CORREÇÃO: gerarProtocolo agora usa lock pessimista (lockForUpdate) dentro
+     * de uma transação para evitar race condition em cadastros simultâneos.
+     * Dois requests paralelos não conseguem mais ler o mesmo count e gerar
+     * protocolos duplicados, que antes causavam exception de constraint unique.
+     */
     public static function gerarProtocolo(): string
     {
-        $ano    = date('Y');
-        $ultimo = self::whereYear('created_at', $ano)->count();
-        return $ano.'-'.str_pad($ultimo + 1, 6, '0', STR_PAD_LEFT);
+        return DB::transaction(function () {
+            $ano    = date('Y');
+            $ultimo = self::whereYear('created_at', $ano)->lockForUpdate()->count();
+            return $ano.'-'.str_pad($ultimo + 1, 6, '0', STR_PAD_LEFT);
+        });
     }
 }

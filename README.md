@@ -26,11 +26,11 @@ O SCED permite que organizações substituam planilhas manuais por um sistema ce
 ## Funcionalidades
 
 - ✅ Autenticação de usuários com controle de sessão
-- ✅ Controle de perfis: **Administrador** e **Operador**
+- ✅ Controle de perfis: **Administrador**, **Supervisor N3** e **Operador**
 - ✅ Registro de documentos com geração automática de protocolo
 - ✅ Anexo de múltiplos arquivos por documento (PDF, DOC, DOCX, JPG, PNG)
 - ✅ Consulta com filtros avançados (protocolo, remetente, tipo, status, período)
-- ✅ Controle de status: **Recebido → Em Análise → Encaminhado → Finalizado**
+- ✅ Fluxo de status: **Novo → Em Análise → Pendente → Finalizado / Desativado**
 - ✅ Histórico completo de movimentações por documento
 - ✅ Geração de relatórios com exportação em PDF
 - ✅ Log de auditoria de ações no sistema
@@ -43,36 +43,50 @@ O SCED permite que organizações substituam planilhas manuais por um sistema ce
 | Camada | Tecnologia |
 |---|---|
 | Back-end | Laravel 11 (PHP 8.2+) |
-| Front-end | Blade + CSS customizado + Bootstrap 5 |
+| Front-end | Blade + CSS customizado |
 | Banco de Dados | MySQL 8 |
 | Autenticação | Laravel Breeze |
 | Relatórios PDF | barryvdh/laravel-dompdf |
+| Build de assets | Vite + Tailwind CSS |
 | Fontes | Google Fonts — Sora + JetBrains Mono |
 
 ---
 
+
 ## Arquitetura do Sistema
 
-O sistema segue a arquitetura **MVC (Model-View-Controller)** do Laravel, com separação clara entre regras de negócio, apresentação e acesso a dados.
+O sistema segue a arquitetura **MVC (Model-View-Controller)** do Laravel, com separação clara entre regras de negócio, apresentação e acesso a dados. A lógica de fluxo de documentos é centralizada em um Service (`ProcessoService`) e as permissões são gerenciadas por uma Policy (`ProcessoPolicy`).
 
 ```
 sced/
 ├── app/
 │   ├── Http/
 │   │   ├── Controllers/
-│   │   │   ├── DocumentoController.php
+│   │   │   ├── ProcessoController.php       ← CRUD + transições de status
+│   │   │   ├── DashboardController.php
 │   │   │   ├── UsuarioController.php
 │   │   │   ├── TipoDocumentoController.php
-│   │   │   └── RelatorioController.php
+│   │   │   ├── DepartamentoController.php
+│   │   │   ├── RelatorioController.php
+│   │   │   ├── LogAuditoriaController.php
+│   │   │   └── Api/ServicoController.php    ← endpoints JSON
 │   │   └── Middleware/
-│   │       └── AdminMiddleware.php
-│   └── Models/
-│       ├── User.php
-│       ├── Documento.php
-│       ├── TipoDocumento.php
-│       ├── HistoricoMovimentacao.php
-│       ├── ArquivoAnexo.php
-│       └── LogAuditoria.php
+│   │       ├── AdminMiddleware.php
+│   │       └── N3Middleware.php
+│   ├── Models/
+│   │   ├── User.php
+│   │   ├── Documento.php
+│   │   ├── TipoDocumento.php
+│   │   ├── Departamento.php
+│   │   ├── HistoricoMovimentacao.php
+│   │   ├── ArquivoAnexo.php
+│   │   └── LogAuditoria.php
+│   ├── Services/
+│   │   └── ProcessoService.php              ← regras de negócio do fluxo
+│   ├── Policies/
+│   │   └── ProcessoPolicy.php               ← controle de permissões
+│   └── Exceptions/
+│       └── StatusTransitionException.php
 ├── database/
 │   ├── migrations/
 │   └── seeders/
@@ -80,14 +94,18 @@ sced/
 │   ├── layouts/app.blade.php
 │   ├── auth/login.blade.php
 │   ├── dashboard.blade.php
-│   ├── documentos/
+│   ├── processos/
 │   ├── usuarios/
-│   ├── tipos/
+│   ├── departamentos/
+│   ├── admin/
+│   │   ├── tipos/
+│   │   └── logs/
 │   └── relatorios/
 ├── public/css/
 │   └── sced.css
 └── routes/
-    └── web.php
+    ├── web.php
+    └── api.php
 ```
 
 ---
@@ -99,7 +117,8 @@ O sistema utiliza 6 tabelas principais:
 | Tabela | Descrição |
 |---|---|
 | `users` | Usuários do sistema com perfil e status |
-| `tipo_documentos` | Categorias de documentos (Ofício, Memorando, etc.) |
+| `departamentos` | Departamentos da organização |
+| `tipo_documentos` | Categorias de documentos com SLA e cargo responsável |
 | `documentos` | Registro principal dos documentos e seus metadados |
 | `historico_movimentacoes` | Rastreamento de cada alteração de status |
 | `arquivo_anexos` | Arquivos físicos vinculados a cada documento |
@@ -122,18 +141,23 @@ O sequencial é reiniciado a cada ano e possui 6 dígitos com zeros à esquerda.
 
 ### 👑 Administrador
 - Acesso completo ao sistema
-- Gerencia usuários (criar, editar, ativar/desativar)
-- Gerencia tipos de documento
+- Gerencia usuários, departamentos e tipos de documento
 - Acessa relatórios e exportação em PDF
-- Pode alterar status de documentos finalizados
+- Pode alterar status de documentos manualmente
+- Visualiza logs de auditoria
+
+### 🔷 Supervisor N3
+- Pode assumir, devolver, finalizar e reabrir processos
+- Desativa processos e realiza alterações manuais de status
+- Valida e rejeita anexos
 - Visualiza logs de auditoria
 
 ### 👤 Operador
 - Registra novos documentos
 - Consulta e filtra documentos
-- Atualiza status de documentos (exceto finalizados)
-- Adiciona observações nas movimentações
-- Faz download de arquivos anexos
+- Assume processos disponíveis na fila
+- Devolve processos ao solicitante com justificativa
+- Substitui e reenvia anexos pendentes
 
 ---
 
@@ -142,13 +166,15 @@ O sequencial é reiniciado a cada ano e possui 6 dígitos com zeros à esquerda.
 | Tela | Descrição |
 |---|---|
 | Login | Autenticação com e-mail e senha |
-| Dashboard | Visão geral com cards de estatísticas e documentos recentes |
+| Dashboard | KPIs em tempo real, fila de atribuição e processos em aberto |
 | Documentos | Listagem com filtros avançados e paginação |
-| Novo Documento | Formulário com upload de múltiplos arquivos |
-| Detalhes | Ficha completa, histórico de movimentações e alteração de status |
-| Tipos de Documento | Gerenciamento de categorias |
+| Novo Documento | Formulário com upload de múltiplos arquivos e autocomplete de tipo |
+| Detalhes | Ficha completa, histórico de movimentações, validação de anexos e ações de fluxo |
+| Tipos de Documento | Gerenciamento de categorias com SLA e cargo responsável |
+| Departamentos | Gerenciamento de departamentos (somente admin) |
 | Usuários | Gerenciamento de usuários (somente admin) |
 | Relatórios | Geração de PDF filtrado por status, tipo e período |
+| Logs de Auditoria | Histórico completo de ações no sistema (admin + N3) |
 
 ---
 
@@ -157,7 +183,7 @@ O sequencial é reiniciado a cada ano e possui 6 dígitos com zeros à esquerda.
 Os relatórios podem ser filtrados por:
 
 - Tipo de documento
-- Status (Recebido, Em Análise, Encaminhado, Finalizado)
+- Status (Novo, Em Análise, Pendente, Finalizado, Desativado)
 - Período (data inicial e data final)
 
 O PDF gerado inclui:

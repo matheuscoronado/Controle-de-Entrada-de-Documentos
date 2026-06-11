@@ -1,10 +1,5 @@
 <?php
-// app/Http/Controllers/ProcessoController.php — PARTE 3
-// ============================================================
-// Controller slim: delega TODA lógica de negócio ao
-// ProcessoService e autorização à ProcessoPolicy.
-// Mantém o nome de rota 'documentos.*' para compatibilidade.
-// ============================================================
+// app/Http/Controllers/ProcessoController.php
 
 namespace App\Http\Controllers;
 
@@ -42,8 +37,6 @@ class ProcessoController extends Controller
         if ($request->data_inicio && $request->data_fim)
             $query->whereBetween('data_recebimento', [$request->data_inicio, $request->data_fim]);
 
-        // Operadores só vêem seus próprios processos (criados ou atribuídos a eles)
-        // Ajustado para usar isAdmin() com segurança evitando falhas de métodos inexistentes
         $user = auth()->user();
         if (!(method_exists($user, 'isAdmin') && $user->isAdmin())) {
             $query->where(function ($q) {
@@ -83,9 +76,8 @@ class ProcessoController extends Controller
             'tipos_anexo.*'           => 'nullable|string|in:rg,cpf,contrato,comprovante_residencia,comprovante_renda,certidao,laudo,outros',
         ]);
 
-        // Cria o processo pelo service (status inicial: 'novo')
-        $documento = \App\Models\Documento::create([
-            'numero_protocolo'        => \App\Models\Documento::gerarProtocolo(),
+        $documento = Documento::create([
+            'numero_protocolo'        => Documento::gerarProtocolo(),
             'tipo_documento_id'       => $data['tipo_documento_id'],
             'usuario_registro_id'     => auth()->id(),
             'remetente'               => $data['remetente'],
@@ -94,7 +86,8 @@ class ProcessoController extends Controller
             'setor_destino'           => $data['setor_destino'],
             'departamento_destino_id' => $data['departamento_destino_id'] ?? null,
             'status'                  => 'novo',
-            'data_recebimento'        => today(),
+            // CORREÇÃO: usa a data informada pelo usuário, não today() fixo
+            'data_recebimento'        => $data['data_recebimento'],
         ]);
 
         \App\Models\HistoricoMovimentacao::create([
@@ -105,7 +98,6 @@ class ProcessoController extends Controller
             'observacoes'  => 'Processo aberto no sistema.',
         ]);
 
-        // Processa uploads iniciais
         if ($request->hasFile('anexos')) {
             foreach ($request->file('anexos') as $i => $file) {
                 $caminho = $file->store('anexos', 'public');
@@ -132,11 +124,8 @@ class ProcessoController extends Controller
             ->with('success', 'Processo aberto! Protocolo: '.$documento->numero_protocolo);
     }
 
-    // ── API Autocomplete JSON para os Serviços ────────────────
+    // ── JSON para Autocomplete ───────────────────────────────
 
-    /**
-     * Retorna os tipos de documento ativos em formato JSON para a busca assíncrona.
-     */
     public function tiposJson(Request $request): JsonResponse
     {
         $search = $request->input('q');
@@ -145,9 +134,50 @@ class ProcessoController extends Controller
             ->when($search, function ($query, $search) {
                 return $query->where('nome', 'like', '%' . $search . '%');
             })
-            ->get(['id', 'nome', 'setor_destino']);
+            ->with('departamentoDestino:id,nome')
+            ->select(['id', 'nome', 'descricao', 'obrigatoriedade',
+                      'departamento_destino_id', 'cargo_responsavel', 'sla_horas'])
+            ->orderBy('nome')
+            ->limit(10)
+            ->get();
 
-        return response()->json($tipos);
+        return response()->json($tipos->map(fn($s) => [
+            'id'               => $s->id,
+            'nome'             => $s->nome,
+            'descricao'        => $s->descricao,
+            'obrigatorio'      => $s->obrigatoriedade === 'obrigatorio',
+            'setor_nome'       => $s->departamentoDestino?->nome ?? '',
+            'setor_id'         => $s->departamento_destino_id,
+            'cargo_responsavel'=> $s->cargo_responsavel,
+            'sla_label'        => $s->label_sla,
+        ]));
+    }
+
+    public function requisitosJson(int $id): JsonResponse
+    {
+        $servico = TipoDocumento::with('departamentoDestino:id,nome')->findOrFail($id);
+
+        $obrigatorios = TipoDocumento::where('status', 'ativo')
+            ->where('obrigatoriedade', 'obrigatorio')
+            ->where('id', '!=', $id)
+            ->when($servico->departamento_destino_id, fn($q) =>
+                $q->where('departamento_destino_id', $servico->departamento_destino_id)
+            )
+            ->pluck('nome')
+            ->values();
+
+        return response()->json([
+            'servico' => [
+                'id'          => $servico->id,
+                'nome'        => $servico->nome,
+                'setor'       => $servico->departamentoDestino?->nome,
+                'setor_id'    => $servico->departamento_destino_id,
+                'responsavel' => $servico->cargo_responsavel,
+                'sla'         => $servico->label_sla,
+                'obrigatorio' => $servico->obrigatoriedade === 'obrigatorio',
+            ],
+            'documentos_obrigatorios' => $obrigatorios,
+        ]);
     }
 
     // ── Detalhe ──────────────────────────────────────────────
@@ -180,29 +210,25 @@ class ProcessoController extends Controller
         Gate::authorize('update', $documento);
 
         $data = $request->validate([
-            'remetente'  => 'required|string|max:255',
-            'descricao'  => 'nullable|string|max:2000',
-            'setor_destino' => 'required|string|max:255',
+            'remetente'    => 'required|string|max:255',
+            'descricao'    => 'nullable|string|max:2000',
+            'setor_destino'=> 'required|string|max:255',
         ]);
 
         try {
             $this->service->editarDados($documento, auth()->user(), $data);
-            return back()->with('success', 'Dados do processo updated.');
+            return back()->with('success', 'Dados do processo atualizados com sucesso.');
         } catch (StatusTransitionException $e) {
             return back()->with('error', $e->getMessage());
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // AÇÕES DE STATUS
-    // ═══════════════════════════════════════════════════════
+    // ── Transições de Status ─────────────────────────────────
 
-    /** POST /documentos/{doc}/assumir */
     public function assumir(Request $request, Documento $documento): RedirectResponse
     {
         Gate::authorize('assumir', $documento);
         $request->validate(['observacoes' => 'nullable|string|max:500']);
-
         try {
             $this->service->assumir($documento, auth()->user(), $request->observacoes);
             return back()->with('success', 'Processo assumido! Status: Em Análise.');
@@ -211,12 +237,10 @@ class ProcessoController extends Controller
         }
     }
 
-    /** POST /documentos/{doc}/devolver */
     public function devolver(Request $request, Documento $documento): RedirectResponse
     {
         Gate::authorize('devolver', $documento);
         $request->validate(['motivo' => 'required|string|max:1000']);
-
         try {
             $this->service->devolver($documento, auth()->user(), $request->motivo);
             return back()->with('success', 'Processo devolvido ao solicitante.');
@@ -225,22 +249,19 @@ class ProcessoController extends Controller
         }
     }
 
-    /** POST /documentos/{doc}/retornar */
     public function retornar(Request $request, Documento $documento): RedirectResponse
     {
         Gate::authorize('retornar', $documento);
         $request->validate([
-            'observacoes' => 'nullable|string|max:1000',
-            'anexos'      => 'nullable|array',
-            'anexos.*'    => 'file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
-            'tipos_anexo' => 'nullable|array',
+            'observacoes'  => 'nullable|string|max:1000',
+            'anexos'       => 'nullable|array',
+            'anexos.*'     => 'file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
+            'tipos_anexo'  => 'nullable|array',
             'tipos_anexo.*'=> 'nullable|string',
         ]);
-
         try {
             $this->service->retornar(
-                $documento,
-                auth()->user(),
+                $documento, auth()->user(),
                 $request->observacoes,
                 $request->file('anexos', []),
                 $request->input('tipos_anexo', [])
@@ -251,12 +272,10 @@ class ProcessoController extends Controller
         }
     }
 
-    /** POST /documentos/{doc}/finalizar */
     public function finalizar(Request $request, Documento $documento): RedirectResponse
     {
         Gate::authorize('finalizar', $documento);
         $request->validate(['observacoes' => 'nullable|string|max:1000']);
-
         try {
             $this->service->finalizar($documento, auth()->user(), $request->observacoes);
             return back()->with('success', 'Processo finalizado com sucesso.');
@@ -265,12 +284,10 @@ class ProcessoController extends Controller
         }
     }
 
-    /** POST /documentos/{doc}/desativar — admin/N3 */
     public function desativar(Request $request, Documento $documento): RedirectResponse
     {
         Gate::authorize('desativar', $documento);
         $request->validate(['motivo' => 'required|string|max:1000']);
-
         try {
             $this->service->desativar($documento, auth()->user(), $request->motivo);
             return back()->with('success', 'Processo desativado.');
@@ -279,12 +296,10 @@ class ProcessoController extends Controller
         }
     }
 
-    /** POST /documentos/{doc}/reabrir — admin/N3 */
     public function reabrir(Request $request, Documento $documento): RedirectResponse
     {
         Gate::authorize('reabrir', $documento);
         $request->validate(['observacoes' => 'nullable|string|max:500']);
-
         try {
             $this->service->reabrir($documento, auth()->user(), $request->observacoes);
             return back()->with('success', 'Processo reaberto.');
@@ -293,7 +308,6 @@ class ProcessoController extends Controller
         }
     }
 
-    /** PATCH /documentos/{doc}/status-manual — admin/N3 */
     public function statusManual(Request $request, Documento $documento): RedirectResponse
     {
         Gate::authorize('alterarStatusManual', $documento);
@@ -301,13 +315,10 @@ class ProcessoController extends Controller
             'status'      => 'required|in:novo,em_analise,pendente,finalizado,desativado',
             'observacoes' => 'nullable|string|max:1000',
         ]);
-
         try {
             $this->service->alterarStatusManual(
-                $documento,
-                auth()->user(),
-                $request->status,
-                $request->observacoes
+                $documento, auth()->user(),
+                $request->status, $request->observacoes
             );
             return back()->with('success', 'Status alterado manualmente.');
         } catch (StatusTransitionException $e) {
@@ -315,22 +326,16 @@ class ProcessoController extends Controller
         }
     }
 
-    // ── Substituição de Anexo ────────────────────────────────
-
-    /** POST /documentos/{doc}/anexos/{anexo}/substituir */
     public function substituirAnexo(Request $request, Documento $documento, ArquivoAnexo $anexo): RedirectResponse
     {
         Gate::authorize('substituirAnexo', $documento);
         $request->validate([
-            'arquivo'     => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
-            'tipo_anexo'  => 'nullable|string|in:rg,cpf,contrato,comprovante_residencia,comprovante_renda,certidao,laudo,outros',
+            'arquivo'    => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
+            'tipo_anexo' => 'nullable|string|in:rg,cpf,contrato,comprovante_residencia,comprovante_renda,certidao,laudo,outros',
         ]);
-
         try {
             $this->service->substituirAnexo(
-                $documento,
-                auth()->user(),
-                $anexo,
+                $documento, auth()->user(), $anexo,
                 $request->file('arquivo'),
                 $request->input('tipo_anexo', 'outros')
             );
@@ -340,7 +345,6 @@ class ProcessoController extends Controller
         }
     }
 
-    /** POST /documentos/{doc}/anexos/{anexo}/validar — admin/N3 */
     public function validarAnexo(Request $request, Documento $documento, ArquivoAnexo $anexo): RedirectResponse
     {
         Gate::authorize('validarAnexo', $documento);
@@ -348,14 +352,10 @@ class ProcessoController extends Controller
             'status_validacao' => 'required|in:aprovado,rejeitado',
             'observacao'       => 'nullable|string|max:500',
         ]);
-
         try {
             $this->service->validarAnexo(
-                $documento,
-                auth()->user(),
-                $anexo,
-                $request->status_validacao,
-                $request->observacao
+                $documento, auth()->user(), $anexo,
+                $request->status_validacao, $request->observacao
             );
             return back()->with('success', 'Validação do anexo registrada.');
         } catch (StatusTransitionException $e) {

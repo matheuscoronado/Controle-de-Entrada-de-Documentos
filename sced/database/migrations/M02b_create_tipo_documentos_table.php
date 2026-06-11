@@ -1,6 +1,7 @@
 <?php
-// SUBSTITUI: 2026_04_17_235025_create_tipo_documentos_table.php
-// Alteração: adiciona obrigatoriedade, departamento_destino_id, cargo_responsavel, sla_horas
+// database/migrations/M02b_create_tipo_documentos_table.php — CORRIGIDO
+// Correção: adicionada FK explícita para departamento_destino_id → departamentos
+// (a migration original não declarava a FK, apenas a coluna)
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -14,12 +15,17 @@ return new class extends Migration {
             $table->string('nome')->unique();
             $table->text('descricao')->nullable();
             $table->enum('status', ['ativo', 'inativo'])->default('ativo');
-            // NOVOS (Parte 1)
             $table->enum('obrigatoriedade', ['obrigatorio', 'opcional'])->default('opcional');
             $table->unsignedBigInteger('departamento_destino_id')->nullable();
             $table->enum('cargo_responsavel', ['N1', 'N2', 'N3'])->nullable();
             $table->unsignedSmallInteger('sla_horas')->nullable();
             $table->timestamps();
+
+            // CORREÇÃO: FK adicionada (departamentos já existe pois M02 roda antes)
+            $table->foreign('departamento_destino_id')
+                  ->references('id')
+                  ->on('departamentos')
+                  ->nullOnDelete();
         });
     }
 

@@ -10,6 +10,12 @@ class TipoDocumento extends Model
     public function documentos()          { return $this->hasMany(Documento::class); }
     public function departamentoDestino() { return $this->belongsTo(Departamento::class, 'departamento_destino_id'); }
 
+    // Documentos necessários para este serviço (via pivot)
+    public function documentosTipo()
+    {
+        return $this->belongsToMany(DocumentoTipo::class, 'tipo_documento_documento_tipo', 'tipo_documento_id', 'documento_tipo_id');
+    }
+
     public function getLabelSlaAttribute(): string
     {
         if (!$this->sla_horas) return '—';

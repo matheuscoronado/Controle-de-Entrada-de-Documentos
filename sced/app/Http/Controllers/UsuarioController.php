@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\LogAuditoria;
-use App\Models\Departamento; 
+use App\Models\Departamento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -12,7 +12,6 @@ class UsuarioController extends Controller
 {
     public function index()
     {
-        // "Eager Loading": Carrega o departamento junto para não pesar o banco
         $usuarios = User::with('departamentoRelacionado')->get();
         return view('usuarios.index', compact('usuarios'));
     }
@@ -29,9 +28,9 @@ class UsuarioController extends Controller
             'nome'            => 'required|string|max:255',
             'email'           => 'required|email|unique:users',
             'password'        => 'required|min:6|confirmed',
-            'perfil'          => 'required|in:administrador,operador',
-            // Validamos pelo ID agora
-            'departamento_id' => 'required|exists:departamentos,id', 
+            // CORREÇÃO: adicionado 'n3' ao enum de perfis permitidos
+            'perfil'          => 'required|in:administrador,n3,operador',
+            'departamento_id' => 'required|exists:departamentos,id',
             'cargo'           => 'required|in:N1,N2,N3',
         ]);
 
@@ -41,7 +40,7 @@ class UsuarioController extends Controller
             'password'        => Hash::make($request->password),
             'perfil'          => $request->perfil,
             'status'          => 'ativo',
-            'departamento_id' => $request->departamento_id, // Salvando o ID
+            'departamento_id' => $request->departamento_id,
             'cargo'           => $request->cargo,
         ]);
 
@@ -66,13 +65,13 @@ class UsuarioController extends Controller
     {
         $request->validate([
             'nome'            => 'required|string|max:255',
-            'perfil'          => 'required|in:administrador,operador',
+            // CORREÇÃO: adicionado 'n3' ao enum de perfis permitidos
+            'perfil'          => 'required|in:administrador,n3,operador',
             'status'          => 'required|in:ativo,inativo',
-            'departamento_id' => 'required|exists:departamentos,id', // Validando ID
+            'departamento_id' => 'required|exists:departamentos,id',
             'cargo'           => 'required|in:N1,N2,N3',
         ]);
 
-        // Atualiza usando o departamento_id
         $usuario->update([
             'nome'            => $request->nome,
             'perfil'          => $request->perfil,

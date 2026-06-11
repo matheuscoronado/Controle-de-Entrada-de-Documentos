@@ -1,122 +1,103 @@
 {{-- ============================================================
-     Arquivo: resources/views/relatorios/index.blade.php
-     Formulário de geração de relatório
+     resources/views/relatorios/index.blade.php — CORRIGIDO
+     Correção: status 'recebido' → 'novo', 'encaminhado' removido,
+     adicionados 'pendente' e 'desativado' conforme novo modelo.
      ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Relatórios')
-@section('subtitle', 'Gere relatórios filtrados e exporte em PDF')
+@section('subtitle', 'Geração de relatórios do sistema')
 
 @section('content')
-
-<div class="row g-3">
-    {{-- Formulário de filtros --}}
-    <div class="col-12 col-lg-5">
+<div class="row g-4">
+    <div class="col-lg-4">
         <div class="card-sced card-body-sced">
-            <strong style="font-size:15px; color:var(--azul-escuro); display:block; margin-bottom:20px;">
-                📊 Configurar Relatório
+            <strong style="font-size:15px;color:var(--azul-escuro);display:block;margin-bottom:20px;">
+                📊 Gerar Relatório
             </strong>
-            <form method="POST" action="{{ route('relatorios.gerar') }}" target="_blank">
+
+            <form method="POST" action="{{ route('relatorios.gerar') }}">
                 @csrf
 
-                <div class="form-group">
-                    <label class="form-label-sced">Tipo de Documento</label>
+                <div class="mb-3">
+                    <label class="form-label-sced">Período — Data Inicial</label>
+                    <input type="date" name="data_inicio" class="form-input-sced"
+                           value="{{ date('Y-m-01') }}">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label-sced">Período — Data Final</label>
+                    <input type="date" name="data_fim" class="form-input-sced"
+                           value="{{ date('Y-m-d') }}">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label-sced">Serviço (Tipo)</label>
                     <select name="tipo_documento_id" class="form-input-sced">
-                        <option value="">Todos os tipos</option>
+                        <option value="">Todos os serviços</option>
                         @foreach($tipos as $tipo)
                             <option value="{{ $tipo->id }}">{{ $tipo->nome }}</option>
                         @endforeach
                     </select>
                 </div>
 
-                <div class="form-group">
+                <div class="mb-3">
                     <label class="form-label-sced">Status</label>
+                    {{-- CORRIGIDO: status alinhados com o modelo atual --}}
                     <select name="status" class="form-input-sced">
                         <option value="">Todos os status</option>
-                        <option value="recebido">📥 Recebido</option>
+                        <option value="novo">🆕 Novo</option>
                         <option value="em_analise">🔍 Em Análise</option>
-                        <option value="encaminhado">↗️ Encaminhado</option>
+                        <option value="pendente">⏳ Pendente</option>
                         <option value="finalizado">✅ Finalizado</option>
+                        <option value="desativado">🚫 Desativado</option>
                     </select>
                 </div>
 
-                <div class="row g-2">
-                    <div class="col-6">
-                        <div class="form-group">
-                            <label class="form-label-sced">Data inicial</label>
-                            <input type="date" name="data_inicio" class="form-input-sced">
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="form-group">
-                            <label class="form-label-sced">Data final</label>
-                            <input type="date" name="data_fim" class="form-input-sced"
-                                   value="{{ date('Y-m-d') }}">
-                        </div>
-                    </div>
-                </div>
-
-                <div style="padding-top:20px; border-top:1px solid var(--cinza-200);">
-                    <button type="submit" class="btn-primary-sced" style="width:100%; justify-content:center; font-size:15px; padding:13px;">
-                        📥 Gerar e Baixar PDF
-                    </button>
-                    <div style="text-align:center; font-size:12px; color:var(--cinza-400); margin-top:8px;">
-                        O relatório abrirá em nova aba para download.
-                    </div>
-                </div>
+                <button type="submit" class="btn-primary-sced" style="width:100%;justify-content:center;">
+                    📄 Gerar PDF
+                </button>
             </form>
         </div>
     </div>
 
-    {{-- Prévia de estatísticas --}}
-    <div class="col-12 col-lg-7">
+    <div class="col-lg-8">
         <div class="card-sced card-body-sced">
-            <strong style="font-size:15px; color:var(--azul-escuro); display:block; margin-bottom:20px;">
-                📈 Visão Geral do Acervo
+            <strong style="font-size:15px;color:var(--azul-escuro);display:block;margin-bottom:16px;">
+                ℹ️ Sobre os Relatórios
             </strong>
-            <div class="row g-3">
+            <p style="font-size:13px;color:var(--cinza-600);line-height:1.7;">
+                Os relatórios são gerados em PDF e incluem todos os processos do período
+                selecionado com o status e serviço escolhidos. Selecione os filtros
+                desejados e clique em <strong>Gerar PDF</strong>.
+            </p>
+            <div style="margin-top:16px;padding:14px;background:var(--cinza-100);border-radius:var(--radius-sm);">
                 @php
-                    $statusConfig = [
-                        'recebido'    => ['label'=>'Recebido',    'icon'=>'📥', 'color'=>'#2563eb'],
-                        'em_analise'  => ['label'=>'Em Análise',  'icon'=>'🔍', 'color'=>'#d97706'],
-                        'encaminhado' => ['label'=>'Encaminhado', 'icon'=>'↗️', 'color'=>'#0891b2'],
-                        'finalizado'  => ['label'=>'Finalizado',  'icon'=>'✅', 'color'=>'#059669'],
+                    $statusInfo = [
+                        'novo'       => ['label'=>'Novo',        'icon'=>'🆕', 'color'=>'#2563eb'],
+                        'em_analise' => ['label'=>'Em Análise',  'icon'=>'🔍', 'color'=>'#d97706'],
+                        'pendente'   => ['label'=>'Pendente',    'icon'=>'⏳', 'color'=>'#92400e'],
+                        'finalizado' => ['label'=>'Finalizado',  'icon'=>'✅', 'color'=>'#059669'],
+                        'desativado' => ['label'=>'Desativado',  'icon'=>'🚫', 'color'=>'#64748b'],
                     ];
-                    $totalGeral = \App\Models\Documento::count();
                 @endphp
-                @foreach($statusConfig as $key => $cfg)
-                @php
-                    $qtd = \App\Models\Documento::where('status', $key)->count();
-                @endphp
-                <div class="col-6">
-                    <div style="background:var(--cinza-100); border-radius:var(--radius-sm); padding:16px; display:flex; align-items:center; gap:12px;">
-                        <span style="font-size:24px;">{{ $cfg['icon'] }}</span>
-                        <div>
-                            <div class="status-count" data-color="{{ $cfg['color'] }}" style="font-size:22px; font-weight:700;">{{ $qtd }}</div>
-                            <div style="font-size:12px; color:var(--cinza-600);">{{ $cfg['label'] }}</div>
-                        </div>
-                    </div>
+                <div style="font-size:12px;font-weight:600;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">
+                    Legenda de Status
                 </div>
-                @endforeach
-            </div>
-
-            <div style="margin-top:20px; padding-top:20px; border-top:1px solid var(--cinza-200);">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size:14px; color:var(--cinza-600);">Total geral de documentos</span>
-                    <span style="font-size:24px; font-weight:700; color:var(--azul-escuro);">{{ $totalGeral }}</span>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                    @foreach($statusInfo as $s)
+                    <span style="font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:#f1f5f9;color:{{ $s['color'] }};">
+                        {{ $s['icon'] }} {{ $s['label'] }}
+                    </span>
+                    @endforeach
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 @endsection
 
-@push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.status-count[data-color]').forEach(function (el) {
-            el.style.color = el.dataset.color;
-        });
-    });
-</script>
+@push('styles')
+<style>
+.mb-3 { margin-bottom: 14px; }
+</style>
 @endpush

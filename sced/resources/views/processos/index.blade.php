@@ -50,6 +50,7 @@
                 <label>Status</label>
                 <select name="status" class="form-input-sced">
                     <option value="">Todos</option>
+                    <option value="novo"        {{ request('status') == 'novo'        ? 'selected':'' }}>Novo</option>
                     <option value="recebido"    {{ request('status') == 'recebido'    ? 'selected':'' }}>Recebido</option>
                     <option value="em_analise"  {{ request('status') == 'em_analise'  ? 'selected':'' }}>Em Análise</option>
                     <option value="encaminhado" {{ request('status') == 'encaminhado' ? 'selected':'' }}>Encaminhado</option>
@@ -111,7 +112,13 @@
                     </td>
                     <td>
                         <span class="badge-status badge-{{ $doc->status }}">
-                            {{ ['recebido'=>'Recebido','em_analise'=>'Em Análise','encaminhado'=>'Encaminhado','finalizado'=>'Finalizado'][$doc->status] }}
+                            {{ [
+                                'novo'        => 'Novo',
+                                'recebido'    => 'Recebido',
+                                'em_analise'  => 'Em Análise',
+                                'encaminhado' => 'Encaminhado',
+                                'finalizado'  => 'Finalizado'
+                            ][$doc->status] ?? ucfirst($doc->status) }}
                         </span>
                     </td>
                     <td style="text-align:center;">

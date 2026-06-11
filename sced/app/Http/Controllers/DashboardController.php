@@ -1,9 +1,5 @@
 <?php
 // app/Http/Controllers/DashboardController.php
-// ============================================================
-// Parte 4 — Dashboard Operacional
-// Serve a view principal + endpoints JSON para os gráficos.
-// ============================================================
 
 namespace App\Http\Controllers;
 
@@ -16,13 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    // ── View principal ───────────────────────────────────────
-
     public function index(): \Illuminate\View\View
     {
-        $user = auth()->user();
-
-        // ── KPIs de topo ──────────────────────────────────────
+        $user      = auth()->user();
         $baseQuery = $this->baseQuery($user);
 
         $kpis = [
@@ -34,8 +26,6 @@ class DashboardController extends Controller
             'desativado' => (clone $baseQuery)->where('status', 'desativado')->count(),
         ];
 
-        // ── Fila de processos NOVOS (sem responsável) ─────────
-        // Essa é a "home" de atribuição — processos aguardando analista
         $filaAtribuicao = Documento::with(['tipoDocumento', 'usuarioRegistro'])
             ->where('status', 'novo')
             ->whereNull('atribuido_a_id')
@@ -49,27 +39,26 @@ class DashboardController extends Controller
             ->limit(8)
             ->get();
 
-        // ── Meus processos (se operador) ──────────────────────
         $meusProcessos = Documento::with(['tipoDocumento'])
             ->where('atribuido_a_id', $user->id)
             ->whereIn('status', ['em_analise', 'pendente'])
-            ->orderByRaw("FIELD(status, 'pendente', 'em_analise')")
+            ->orderByRaw("CASE status WHEN 'pendente' THEN 0 WHEN 'em_analise' THEN 1 ELSE 2 END")
             ->orderBy('atribuido_em', 'asc')
             ->limit(8)
             ->get();
 
-        // ── Recentes geral ────────────────────────────────────
         $recentes = (clone $baseQuery)
             ->with(['tipoDocumento', 'atribuidoA', 'usuarioRegistro'])
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
 
-        // ── Analistas e seus processos ativos ─────────────────
-        $analistas = User::withCount([
-                'documentosRegistrados as processos_em_analise' => fn($q) =>
-                    $q->where('atribuido_a_id', DB::raw('users.id'))
-                      ->where('status', 'em_analise'),
+        // CORREÇÃO: subquery conta documentos ATRIBUÍDOS ao analista (atribuido_a_id),
+        // não documentos que ele abriu como solicitante (usuario_registro_id).
+        $analistas = User::addSelect([
+                'processos_em_analise' => Documento::selectRaw('COUNT(*)')
+                    ->whereColumn('atribuido_a_id', 'users.id')
+                    ->where('status', 'em_analise'),
             ])
             ->where('status', 'ativo')
             ->where('perfil', '!=', 'administrador')
@@ -82,20 +71,16 @@ class DashboardController extends Controller
         ));
     }
 
-    // ── API: dados para gráficos (fetch a cada 30s via JS) ───
-
     public function metricas(): JsonResponse
     {
-        $user  = auth()->user();
-        $base  = $this->baseQuery($user);
+        $user = auth()->user();
+        $base = $this->baseQuery($user);
 
-        // Contagem por status
         $porStatus = (clone $base)
             ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');
 
-        // Contagem por setor (top 6)
         $porSetor = (clone $base)
             ->selectRaw('setor_destino, COUNT(*) as total')
             ->groupBy('setor_destino')
@@ -103,7 +88,6 @@ class DashboardController extends Controller
             ->limit(6)
             ->pluck('total', 'setor_destino');
 
-        // Contagem por responsável (top 6)
         $porResponsavel = Documento::join('users', 'documentos.atribuido_a_id', '=', 'users.id')
             ->selectRaw('users.nome, COUNT(*) as total')
             ->whereIn('documentos.status', ['em_analise', 'pendente'])
@@ -112,7 +96,6 @@ class DashboardController extends Controller
             ->limit(6)
             ->pluck('total', 'nome');
 
-        // Volume diário (últimos 14 dias)
         $volumeDiario = Documento::selectRaw('DATE(created_at) as dia, COUNT(*) as total')
             ->where('created_at', '>=', now()->subDays(14))
             ->groupBy('dia')
@@ -123,7 +106,6 @@ class DashboardController extends Controller
                 'total' => $r->total,
             ]);
 
-        // Pendentes com mais de 24h sem movimentação
         $atrasados = Documento::whereIn('status', ['novo', 'em_analise', 'pendente'])
             ->where('updated_at', '<', now()->subHours(24))
             ->count();
@@ -144,20 +126,18 @@ class DashboardController extends Controller
         ]);
     }
 
-    // ── API: atribuir processo a operador ─────────────────────
-
     public function atribuir(Request $request, Documento $documento): JsonResponse
     {
         $this->authorize('assumir', $documento);
 
         $request->validate([
-            'usuario_id'       => 'required|exists:users,id',
-            'cargo_responsavel'=> 'nullable|in:N1,N2,N3',
+            // CORREÇÃO: verifica também que o usuário está ativo
+            'usuario_id'        => 'required|exists:users,id,status,ativo',
+            'cargo_responsavel' => 'nullable|in:N1,N2,N3',
         ]);
 
         $analista = User::findOrFail($request->usuario_id);
 
-        // Usa o ProcessoService se disponível
         try {
             app(\App\Services\ProcessoService::class)->assumir($documento, $analista);
         } catch (\Exception $e) {
@@ -171,16 +151,17 @@ class DashboardController extends Controller
         ]);
     }
 
-    // ── API: lista de analistas para o select de atribuição ──
-
     public function analistas(): JsonResponse
     {
-        $analistas = User::where('status', 'ativo')
-            ->where('perfil', '!=', 'administrador')
-            ->withCount([
-                'documentosRegistrados as ativos' => fn($q) =>
-                    $q->whereIn('status', ['em_analise', 'pendente']),
+        // CORREÇÃO: usa subquery para contar documentos ATRIBUÍDOS ao analista,
+        // não documentos que ele abriu como solicitante.
+        $analistas = User::addSelect([
+                'ativos' => Documento::selectRaw('COUNT(*)')
+                    ->whereColumn('atribuido_a_id', 'users.id')
+                    ->whereIn('status', ['em_analise', 'pendente']),
             ])
+            ->where('status', 'ativo')
+            ->where('perfil', '!=', 'administrador')
             ->orderBy('nome')
             ->get(['id', 'nome', 'cargo', 'departamento_id']);
 
@@ -188,11 +169,9 @@ class DashboardController extends Controller
             'id'    => $u->id,
             'nome'  => $u->nome,
             'cargo' => $u->cargo,
-            'carga' => $u->ativos,   // nº de processos ativos
+            'carga' => (int) ($u->ativos ?? 0),
         ]));
     }
-
-    // ── Helper: query base respeitando escopo do usuário ─────
 
     private function baseQuery(User $user)
     {

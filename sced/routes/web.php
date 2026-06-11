@@ -1,5 +1,4 @@
 <?php
-// routes/web.php — VERSÃO FINAL CONSOLIDADA E CORRIGIDA (Partes 1-4)
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProcessoController;
@@ -8,8 +7,10 @@ use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\DepartamentoController;
 use App\Http\Controllers\RelatorioController;
 use App\Http\Controllers\LogAuditoriaController;
+use App\Http\Controllers\DocumentoTipoController;
 use Illuminate\Support\Facades\Route;
 
+// Redirecionamento da raiz para o login
 Route::get('/', fn() => redirect()->route('login'));
 
 Route::middleware(['auth'])->group(function () {
@@ -55,8 +56,9 @@ Route::middleware(['auth'])->group(function () {
 
     // ── Somente Admin ───────────────────────────────────────
     Route::middleware('admin')->group(function () {
-        Route::resource('usuarios',      UsuarioController::class);
+        Route::resource('usuarios',       UsuarioController::class);
         Route::resource('departamentos', DepartamentoController::class);
+        Route::resource('documentos-tipo', DocumentoTipoController::class)->except(['show', 'destroy']);
         Route::get ('/relatorios',       [RelatorioController::class, 'index'])->name('relatorios.index');
         Route::post('/relatorios/gerar', [RelatorioController::class, 'gerar']) ->name('relatorios.gerar');
     });
