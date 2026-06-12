@@ -28,7 +28,7 @@ class ServicoController extends Controller
             )
             ->with('departamentoDestino:id,nome')
             ->select(['id', 'nome', 'descricao', 'obrigatoriedade',
-                      'departamento_destino_id', 'cargo_responsavel', 'sla_horas'])
+                      'departamento_destino_id', 'cargo_responsavel'])
             ->orderBy('nome')
             ->limit(10)
             ->get();
@@ -42,7 +42,6 @@ class ServicoController extends Controller
                 'setor_nome'       => $s->departamentoDestino?->nome ?? '',
                 'setor_id'         => $s->departamento_destino_id,
                 'cargo_responsavel'=> $s->cargo_responsavel,
-                'sla_label'        => $s->label_sla,
             ])
         );
     }
@@ -73,7 +72,6 @@ class ServicoController extends Controller
                 'setor'       => $servico->departamentoDestino?->nome,
                 'setor_id'    => $servico->departamento_destino_id,
                 'responsavel' => $servico->cargo_responsavel,
-                'sla'         => $servico->label_sla,
                 'obrigatorio' => $servico->obrigatoriedade === 'obrigatorio',
             ],
             'documentos_obrigatorios' => $obrigatorios,

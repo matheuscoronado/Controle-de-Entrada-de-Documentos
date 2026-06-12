@@ -1,12 +1,11 @@
 {{-- ============================================================
-     resources/views/dashboard.blade.php — PARTE 4
-     Dashboard operacional completo:
-     • KPIs em tempo real (atualização a cada 30s)
-     • Gráfico de barras: volume diário
-     • Gráfico de rosca: distribuição por status
-     • Gráfico horizontal: por setor e por responsável
-     • Fila de atribuição: processos NOVOS sem responsável
-     • Lista: meus processos ativos
+     resources/views/dashboard.blade.php — Fase 2 Visual
+     Dashboard operacional:
+     • KPIs modernos com cards refinados
+     • Gráfico volume diário e rosca de status
+     • Barras por setor e responsável
+     • Fila de atribuição e meus processos
+     • Layout 4-col desktop / 2-col tablet / empilhado mobile
      ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Dashboard')
@@ -21,52 +20,58 @@
 @section('content')
 
 {{-- ══ LINHA 1: KPIs ══════════════════════════════════════════ --}}
-<div class="row g-3 mb-4" id="kpiRow">
-    @php
-        $kpiConfig = [
-            ['key'=>'total',      'icone'=>'📂', 'cor'=>'azul',    'label'=>'Total de Processos'],
-            ['key'=>'novo',       'icone'=>'🆕', 'cor'=>'ciano',   'label'=>'Novos (aguardando)'],
-            ['key'=>'em_analise', 'icone'=>'🔍', 'cor'=>'amarelo', 'label'=>'Em Análise'],
-            ['key'=>'pendente',   'icone'=>'⏳', 'cor'=>'vermelho','label'=>'Pendentes'],
-            ['key'=>'finalizado', 'icone'=>'✅', 'cor'=>'verde',   'label'=>'Finalizados'],
-        ];
-    @endphp
+@php
+    $kpiConfig = [
+        ['key'=>'total',      'icone'=>'📂', 'cor'=>'azul',    'label'=>'Total de Processos',  'href'=>null],
+        ['key'=>'novo',       'icone'=>'🆕', 'cor'=>'ciano',   'label'=>'Novos (aguardando)',   'href'=>route('documentos.index').'?status=novo'],
+        ['key'=>'em_analise', 'icone'=>'🔍', 'cor'=>'amarelo', 'label'=>'Em Análise',           'href'=>route('documentos.index').'?status=em_analise'],
+        ['key'=>'pendente',   'icone'=>'⏳', 'cor'=>'vermelho','label'=>'Pendentes',            'href'=>route('documentos.index').'?status=pendente'],
+        ['key'=>'finalizado', 'icone'=>'✅', 'cor'=>'verde',   'label'=>'Finalizados',          'href'=>route('documentos.index').'?status=finalizado'],
+    ];
+@endphp
+<div class="dash-kpi-row" id="kpiRow">
     @foreach($kpiConfig as $k)
-    <div class="col-6 col-md-4 col-lg">
+    <div class="dash-kpi-col">
+        @if($k['href'])
+        <a href="{{ $k['href'] }}" class="kpi-card --clicavel dash-kpi-link" id="kpi-{{ $k['key'] }}">
+        @else
         <div class="kpi-card" id="kpi-{{ $k['key'] }}">
+        @endif
             <div class="kpi-icon {{ $k['cor'] }}">{{ $k['icone'] }}</div>
-            <div>
+            <div class="dash-kpi-body">
                 <div class="kpi-valor" id="kv-{{ $k['key'] }}">{{ $kpis[$k['key']] ?? 0 }}</div>
                 <div class="kpi-label">{{ $k['label'] }}</div>
             </div>
+        @if($k['href'])
+        </a>
+        @else
         </div>
+        @endif
     </div>
     @endforeach
 </div>
 
 {{-- ══ LINHA 2: Gráficos ══════════════════════════════════════ --}}
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-3">
 
     {{-- Gráfico de barras: volume diário --}}
     <div class="col-12 col-lg-8">
-        <div class="card-sced card-body-sced" style="height:260px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                <strong style="font-size:14px;color:var(--azul-escuro);">📈 Volume Diário (14 dias)</strong>
-                <span id="indLive" style="font-size:11px;color:var(--cinza-400);">Atualizando...</span>
+        <div class="card-sced card-body-sced dash-chart-card">
+            <div class="dash-chart-header">
+                <strong class="dash-card-title">📈 Volume Diário (14 dias)</strong>
+                <span id="indLive" class="dash-live-badge">Atualizando...</span>
             </div>
-            <canvas id="chartVolume" style="width:100%;height:190px;"></canvas>
+            <canvas id="chartVolume" style="width:100%;height:180px;"></canvas>
         </div>
     </div>
 
     {{-- Gráfico de rosca: distribuição por status --}}
     <div class="col-12 col-lg-4">
-        <div class="card-sced card-body-sced" style="height:260px;">
-            <strong style="font-size:14px;color:var(--azul-escuro);display:block;margin-bottom:12px;">
-                🍩 Por Status
-            </strong>
-            <div style="display:flex;align-items:center;gap:16px;height:195px;">
-                <canvas id="chartStatus" style="max-width:130px;max-height:130px;flex-shrink:0;"></canvas>
-                <div id="legendStatus" style="font-size:12px;display:flex;flex-direction:column;gap:7px;min-width:0;"></div>
+        <div class="card-sced card-body-sced dash-chart-card">
+            <strong class="dash-card-title mb-3">🍩 Por Status</strong>
+            <div class="dash-rosca-wrap">
+                <canvas id="chartStatus" style="max-width:120px;max-height:120px;flex-shrink:0;"></canvas>
+                <div id="legendStatus" class="dash-rosca-legend"></div>
             </div>
         </div>
     </div>
@@ -74,24 +79,18 @@
 </div>
 
 {{-- ══ LINHA 3: Setor + Responsável ══════════════════════════ --}}
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-3">
 
-    {{-- Por setor --}}
     <div class="col-12 col-md-6">
         <div class="card-sced card-body-sced">
-            <strong style="font-size:14px;color:var(--azul-escuro);display:block;margin-bottom:16px;">
-                🏢 Por Setor
-            </strong>
+            <strong class="dash-card-title mb-3">🏢 Por Setor</strong>
             <div id="barrasSetor"></div>
         </div>
     </div>
 
-    {{-- Por responsável --}}
     <div class="col-12 col-md-6">
         <div class="card-sced card-body-sced">
-            <strong style="font-size:14px;color:var(--azul-escuro);display:block;margin-bottom:16px;">
-                👤 Por Responsável (ativos)
-            </strong>
+            <strong class="dash-card-title mb-3">👤 Por Responsável (ativos)</strong>
             <div id="barrasResponsavel"></div>
         </div>
     </div>
@@ -101,17 +100,15 @@
 {{-- ══ LINHA 4: Fila de Atribuição + Meus Processos ══════════ --}}
 <div class="row g-3">
 
-    {{-- Fila de atribuição (processos NOVOS sem dono) --}}
+    {{-- Fila de atribuição --}}
     <div class="col-12 col-lg-7">
-        <div class="card-sced" style="display:flex;flex-direction:column;height:100%;">
-            <div class="card-header-sced" style="padding-bottom:14px;">
+        <div class="card-sced dash-fila-card">
+            <div class="dash-fila-header">
                 <div>
-                    <strong style="font-size:14px;color:var(--azul-escuro);">🎯 Fila de Atribuição</strong>
-                    <div style="font-size:11px;color:var(--cinza-400);margin-top:2px;">
-                        Processos novos aguardando um responsável
-                    </div>
+                    <strong class="dash-card-title mb-0">🎯 Fila de Atribuição</strong>
+                    <div class="dash-fila-sub">Processos novos aguardando responsável</div>
                 </div>
-                <span id="countFila" style="font-size:12px;font-weight:700;color:var(--azul-claro);background:#eff6ff;padding:3px 10px;border-radius:20px;">
+                <span id="countFila" class="dash-fila-counter">
                     {{ $filaAtribuicao->count() }}
                 </span>
             </div>
@@ -131,19 +128,12 @@
                         @forelse($filaAtribuicao as $doc)
                         <tr id="fila-row-{{ $doc->id }}">
                             <td><span class="protocolo-codigo">{{ $doc->numero_protocolo }}</span></td>
-                            <td style="font-size:12px;font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                {{ $doc->tipoDocumento->nome }}
-                            </td>
-                            <td style="font-size:12px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                {{ $doc->remetente }}
-                            </td>
-                            <td style="font-size:11px;color:var(--cinza-400);white-space:nowrap;">
-                                {{ $doc->created_at->diffForHumans() }}
-                            </td>
+                            <td class="dash-td-truncate">{{ $doc->tipoDocumento->nome }}</td>
+                            <td class="dash-td-truncate">{{ $doc->remetente }}</td>
+                            <td class="dash-td-age">{{ $doc->created_at->diffForHumans() }}</td>
                             <td style="text-align:center;">
                                 <button type="button"
-                                        class="btn-primary-sced"
-                                        style="padding:5px 11px;font-size:11px;"
+                                        class="btn-primary-sced dash-btn-atribuir"
                                         onclick="abrirModalAtribuir({{ $doc->id }}, '{{ $doc->numero_protocolo }}')">
                                     Atribuir →
                                 </button>
@@ -151,7 +141,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" style="text-align:center;padding:32px;color:var(--cinza-400);">
+                            <td colspan="5" class="dash-empty-cell">
                                 <div style="font-size:24px;margin-bottom:6px;">🎉</div>
                                 Nenhum processo na fila!
                             </td>
@@ -162,7 +152,7 @@
             </div>
 
             @if($filaAtribuicao->count() > 0)
-            <div style="padding:12px 22px;border-top:1px solid var(--cinza-200);text-align:right;">
+            <div class="dash-fila-footer">
                 <a href="{{ route('documentos.index') }}?status=novo" class="btn-outline-sced" style="font-size:12px;">
                     Ver todos →
                 </a>
@@ -171,42 +161,37 @@
         </div>
     </div>
 
-    {{-- Meus processos ativos --}}
+    {{-- Meus processos --}}
     <div class="col-12 col-lg-5">
-        <div class="card-sced" style="height:100%;">
-            <div class="card-header-sced" style="padding-bottom:14px;">
-                <strong style="font-size:14px;color:var(--azul-escuro);">📌 Meus Processos</strong>
+        <div class="card-sced dash-meus-card">
+            <div class="dash-meus-header">
+                <strong class="dash-card-title mb-0">📌 Meus Processos</strong>
                 <a href="{{ route('documentos.index') }}" class="btn-outline-sced" style="font-size:11px;padding:4px 10px;">
                     Ver todos
                 </a>
             </div>
 
-            <div style="padding:0 0 4px;">
+            <div>
                 @forelse($meusProcessos as $doc)
-                <a href="{{ route('documentos.show', $doc) }}"
-                   style="display:flex;align-items:center;gap:12px;padding:12px 22px;border-bottom:1px solid var(--cinza-200);text-decoration:none;transition:background .15s;"
-                   onmouseover="this.style.background='var(--cinza-100)'"
-                   onmouseout="this.style.background=''">
+                <a href="{{ route('documentos.show', $doc) }}" class="dash-meu-item">
                     @php $cores = \App\Models\Documento::STATUS_CORES[$doc->status] ?? []; @endphp
-                    <div style="width:6px;height:36px;border-radius:3px;flex-shrink:0;
-                                background:{{ $cores['color'] ?? '#94a3b8' }};opacity:.8;"></div>
-                    <div style="flex:1;min-width:0;">
-                        <div style="font-size:12px;font-weight:600;color:var(--cinza-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                            {{ $doc->tipoDocumento->nome }}
-                        </div>
-                        <div style="font-size:11px;color:var(--cinza-400);margin-top:2px;">
+                    <div class="dash-meu-barra"
+                         style="background:{{ $cores['color'] ?? '#94a3b8' }};"></div>
+                    <div class="dash-meu-corpo">
+                        <div class="dash-meu-servico">{{ $doc->tipoDocumento->nome }}</div>
+                        <div class="dash-meu-meta">
                             <span class="protocolo-codigo">{{ $doc->numero_protocolo }}</span>
-                            · {{ $doc->atribuido_em ? $doc->atribuido_em->diffForHumans() : '—' }}
+                            <span>{{ $doc->atribuido_em ? $doc->atribuido_em->diffForHumans() : '—' }}</span>
                         </div>
                     </div>
-                    <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;flex-shrink:0;
-                                 background:{{ $cores['bg'] ?? '#f1f5f9' }};color:{{ $cores['color'] ?? '#64748b' }};">
+                    <span class="dash-meu-status"
+                          style="background:{{ $cores['bg'] ?? '#f1f5f9' }};color:{{ $cores['color'] ?? '#64748b' }};">
                         {{ \App\Models\Documento::STATUS[$doc->status] ?? $doc->status }}
                     </span>
                 </a>
                 @empty
-                <div style="padding:32px;text-align:center;color:var(--cinza-400);">
-                    <div style="font-size:24px;margin-bottom:6px;">📭</div>
+                <div class="dash-meus-vazio">
+                    <div style="font-size:28px;margin-bottom:8px;">📭</div>
                     <div style="font-size:13px;">Nenhum processo atribuído a você.</div>
                 </div>
                 @endforelse
@@ -214,7 +199,7 @@
         </div>
     </div>
 
-</div>{{-- /row --}}
+</div>
 
 {{-- ══ MODAL DE ATRIBUIÇÃO ══════════════════════════════════ --}}
 <div class="modal-overlay" id="modalOverlay" style="display:none;">
@@ -250,7 +235,6 @@
 
 @endsection
 
-{{-- ══ ESTILOS ════════════════════════════════════════════════ --}}
 @push('styles')
 <style>
 /* Modal */
@@ -273,18 +257,17 @@
 @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
 @keyframes scaleUp { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:none; } }
 
-/* Barras horizontais customizadas */
+/* Barras horizontais */
 .barra-item { display:flex;align-items:center;gap:10px;margin-bottom:12px; }
 .barra-nome { font-size:12px;color:var(--cinza-600);width:130px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.barra-track { flex:1;height:8px;background:var(--cinza-200);border-radius:10px;overflow:hidden; }
+.barra-track { flex:1;height:7px;background:var(--cinza-200);border-radius:10px;overflow:hidden; }
 .barra-fill  { height:100%;border-radius:10px;transition:width .6s ease; }
 .barra-qtd   { font-size:12px;font-weight:700;color:var(--cinza-800);width:24px;text-align:right;flex-shrink:0; }
 
-.mb-3 { margin-bottom: 12px; }
+.mb-3 { margin-bottom: 14px; }
 </style>
 @endpush
 
-{{-- ══ SCRIPTS ════════════════════════════════════════════════ --}}
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
@@ -296,7 +279,6 @@ let chartVol   = null;
 let chartStat  = null;
 let docIdAtual = null;
 
-// Paleta por status
 const STATUS_CORES = {
     novo:       { bg: '#eff6ff', cor: '#2563eb' },
     em_analise: { bg: '#fffbeb', cor: '#d97706' },
@@ -310,11 +292,11 @@ const STATUS_LABELS = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// INICIALIZAÇÃO DOS GRÁFICOS (com dados do Blade)
+// INICIALIZAÇÃO
 // ─────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    buscarMetricas(); // busca inicial
-    setInterval(buscarMetricas, 30000); // atualiza a cada 30s
+    buscarMetricas();
+    setInterval(buscarMetricas, 30000);
 });
 
 async function buscarMetricas() {
@@ -371,7 +353,7 @@ function renderChartVolume(dados) {
             datasets: [{
                 label: 'Processos abertos',
                 data: vals,
-                backgroundColor: 'rgba(37,99,235,.15)',
+                backgroundColor: 'rgba(37,99,235,.12)',
                 borderColor:     '#2563eb',
                 borderWidth:     2,
                 borderRadius:    6,
@@ -383,11 +365,7 @@ function renderChartVolume(dados) {
             maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => ` ${ctx.parsed.y} processo(s)`
-                    }
-                }
+                tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} processo(s)` } }
             },
             scales: {
                 x: { grid: { display: false }, ticks: { font: { family: 'Sora', size: 11 }, color: '#94a3b8' } },
@@ -397,14 +375,13 @@ function renderChartVolume(dados) {
     });
 }
 
-// ── Gráfico de Rosca (status) ─────────────────────────────────
+// ── Gráfico de Rosca ─────────────────────────────────────────
 function renderChartStatus(porStatus) {
     const ctx    = document.getElementById('chartStatus').getContext('2d');
     const chaves = Object.keys(STATUS_LABELS).filter(k => porStatus[k]);
     const labels = chaves.map(k => STATUS_LABELS[k]);
     const vals   = chaves.map(k => porStatus[k] || 0);
     const cores  = chaves.map(k => STATUS_CORES[k]?.cor || '#94a3b8');
-    const total  = vals.reduce((a,b) => a+b, 0) || 1;
 
     if (chartStat) {
         chartStat.data.labels = labels;
@@ -422,7 +399,6 @@ function renderChartStatus(porStatus) {
         });
     }
 
-    // Legenda manual
     const leg = document.getElementById('legendStatus');
     leg.innerHTML = chaves.map((k,i) => `
         <div style="display:flex;align-items:center;gap:6px;">
@@ -433,9 +409,9 @@ function renderChartStatus(porStatus) {
     `).join('');
 }
 
-// ── Barras horizontais customizadas ──────────────────────────
+// ── Barras horizontais ────────────────────────────────────────
 function renderBarras(containerId, dados, cor) {
-    const el  = document.getElementById(containerId);
+    const el = document.getElementById(containerId);
     if (!dados || !Object.keys(dados).length) {
         el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--cinza-400);font-size:13px;">Sem dados</div>';
         return;
@@ -462,7 +438,6 @@ async function abrirModalAtribuir(docId, protocolo) {
     document.getElementById('modalError').style.display = 'none';
     document.getElementById('modalOverlay').style.display = 'flex';
 
-    // Carrega analistas via API
     const select = document.getElementById('selectAnalista');
     select.innerHTML = '<option value="">Carregando...</option>';
     select.disabled = true;
@@ -504,10 +479,7 @@ function fecharModal() {
 
 async function confirmarAtribuicao() {
     const usuarioId = document.getElementById('selectAnalista').value;
-    if (!usuarioId) {
-        mostrarErroModal('Selecione um responsável.');
-        return;
-    }
+    if (!usuarioId) { mostrarErroModal('Selecione um responsável.'); return; }
 
     const btn = document.getElementById('btnConfirmar');
     btn.disabled = true;
@@ -523,14 +495,11 @@ async function confirmarAtribuicao() {
 
         if (data.error) { mostrarErroModal(data.error); return; }
 
-        // Remove a linha da fila sem reload
         const row = document.getElementById('fila-row-' + docIdAtual);
         if (row) { row.style.opacity = '0'; row.style.transition = 'opacity .3s'; setTimeout(() => row.remove(), 300); }
 
         fecharModal();
-        buscarMetricas(); // atualiza KPIs
-
-        // Toast de sucesso
+        buscarMetricas();
         mostrarToast(`Processo ${data.protocolo} atribuído a ${data.analista}.`);
     } catch {
         mostrarErroModal('Erro de comunicação. Tente novamente.');
@@ -546,9 +515,7 @@ function mostrarErroModal(msg) {
     el.style.display = 'flex';
 }
 
-// ─────────────────────────────────────────────────────────────
-// TOAST
-// ─────────────────────────────────────────────────────────────
+// ── Toast ─────────────────────────────────────────────────────
 function mostrarToast(msg) {
     const t = document.createElement('div');
     t.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:999;
@@ -561,14 +528,10 @@ function mostrarToast(msg) {
     setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 3500);
 }
 
-// ─────────────────────────────────────────────────────────────
-// UTILITÁRIOS
-// ─────────────────────────────────────────────────────────────
 function esc(s) {
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// Fecha modal ao clicar no overlay
 document.getElementById('modalOverlay')?.addEventListener('click', function(e) {
     if (e.target === this) fecharModal();
 });

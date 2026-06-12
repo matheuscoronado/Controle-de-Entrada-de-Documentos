@@ -64,14 +64,19 @@ class ProcessoPolicy
     // ── Assumir processo (Atribuição) ────────────────────────
 
     /**
-     * Pode assumir se o processo está em 'novo' ou 'pendente'
-     * e o usuário pertence ao departamento de destino
-     * (ou é admin/N3).
-     * Se já está atribuído a outro, só admin/N3 pode reatribuir.
+     * Pode assumir se o processo está em 'novo' ou 'pendente',
+     * não tem responsável, o usuário pertence ao departamento de destino
+     * E possui permissão habilitada para assumir (pode_assumir = true).
+     * N3 e Admin sempre podem assumir (Admin coberto pelo before()).
      */
     public function assumir(User $user, Documento $doc): bool
     {
         if (method_exists($user, 'isN3') && $user->isN3()) return true;
+
+        // Verifica permissão habilitada
+        if (!$user->podeAssumirProcesso()) {
+            return false;
+        }
 
         if (!in_array($doc->status, ['novo', 'pendente'])) {
             return false;
@@ -80,6 +85,14 @@ class ProcessoPolicy
         // Se já tem dono, bloqueia operadores
         if ($doc->atribuido_a_id && $doc->atribuido_a_id !== $user->id) {
             return false;
+        }
+
+        // Verifica setor destino: usuário deve pertencer ao departamento do processo
+        $depDestino = $doc->departamento_destino_id
+                    ?? optional($doc->tipoDocumento)->departamento_destino_id;
+
+        if ($depDestino && (int)$user->departamento_id !== (int)$depDestino) {
+            return false; // usuário não pertence ao setor destino
         }
 
         return true;
@@ -142,11 +155,16 @@ class ProcessoPolicy
             && in_array($doc->status, ['finalizado', 'desativado']);
     }
 
-    // ── Alteração manual de status (admin/N3 apenas) ─────────
+    // ── Alteração manual de status (SOMENTE ADMIN) ───────────
 
+    /**
+     * Apenas ADMIN pode alterar status manualmente.
+     * O before() já libera o Admin antes de chegar aqui,
+     * então este método apenas bloqueia todos os demais perfis.
+     */
     public function alterarStatusManual(User $user, Documento $doc): bool
     {
-        return method_exists($user, 'isN3') && $user->isN3();
+        return false; // Somente ADMIN — coberto pelo before()
     }
 
     // ── Substituir anexos ────────────────────────────────────

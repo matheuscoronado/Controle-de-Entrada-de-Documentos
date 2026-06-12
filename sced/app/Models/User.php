@@ -10,7 +10,11 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
-    protected $fillable = ['nome','email','password','perfil','status','departamento_id','cargo'];
+    protected $fillable = ['nome','email','password','perfil','status','departamento_id','cargo','pode_assumir'];
+
+    protected $casts = [
+        'pode_assumir' => 'boolean',
+    ];
     protected $hidden   = ['password','remember_token'];
 
     // Relacionamentos
@@ -24,6 +28,19 @@ class User extends Authenticatable
     public function isN3(): bool              { return $this->perfil === 'n3' || $this->cargo === 'N3'; }
     public function isOperador(): bool        { return $this->perfil === 'operador'; }
     public function podeAcessarAdmin(): bool  { return $this->isAdmin() || $this->isN3(); }
+
+    /**
+     * Verifica se o usuário tem permissão habilitada para assumir processos.
+     * Admin e N3 sempre podem. Operadores dependem da flag pode_assumir.
+     */
+    public function podeAssumirProcesso(): bool
+    {
+        if ($this->isAdmin() || $this->isN3()) {
+            return true;
+        }
+
+        return (bool) $this->pode_assumir;
+    }
 
     public function getLabelPerfilAttribute(): string
     {

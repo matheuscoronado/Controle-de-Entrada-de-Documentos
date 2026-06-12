@@ -494,31 +494,52 @@ class ProcessoService
     {
         $acoes = [];
 
+        // Admin tem acesso total (alteração manual de status inclusa)
         if ($user->isAdmin()) {
             return ['assumir', 'devolver', 'retornar', 'finalizar',
                     'desativar', 'reabrir', 'editar', 'alteracao_manual',
                     'substituir_anexo', 'validar_anexo'];
         }
 
+        // ── ASSUMIR ────────────────────────────────────────────────────────────
+        // Condições: status novo/pendente, sem responsável, e usuário pertence
+        // ao departamento de destino do processo (ou do serviço associado).
+        // ALÉM DISSO: usuário deve ter permissão habilitada para assumir.
         if (in_array($doc->status, ['novo', 'pendente']) && !$doc->atribuido_a_id) {
-            $acoes[] = 'assumir';
+            // Verifica permissão de assumir (flag pode_assumir ou perfil N3/Admin)
+            if ($user->podeAssumirProcesso()) {
+                // Determina o departamento de destino (do processo ou do serviço)
+                $depDestino = $doc->departamento_destino_id
+                            ?? optional($doc->tipoDocumento)->departamento_destino_id;
+
+                if (!$depDestino || (int)$user->departamento_id === (int)$depDestino) {
+                    // Sem destino definido OU usuário pertence ao setor correto
+                    $acoes[] = 'assumir';
+                }
+            }
         }
 
+        // ── DEVOLVER + FINALIZAR ───────────────────────────────────────────────
+        // Apenas o analista que assumiu o processo
         if ($doc->status === 'em_analise' && $doc->atribuido_a_id === $user->id) {
             $acoes[] = 'devolver';
             $acoes[] = 'finalizar';
         }
 
+        // ── REENVIAR (retornar) ────────────────────────────────────────────────
+        // Apenas o solicitante quando o processo foi devolvido
         if ($doc->status === 'pendente' && $doc->usuario_registro_id === $user->id) {
             $acoes[] = 'retornar';
             $acoes[] = 'substituir_anexo';
             $acoes[] = 'editar';
         }
 
+        // ── N3 (Supervisor) ───────────────────────────────────────────────────
+        // Pode desativar, reabrir e validar anexos — mas NÃO alterar status manual
+        // (status manual é exclusivo do ADMIN)
         if ($user->isN3()) {
             $acoes[] = 'desativar';
             $acoes[] = 'reabrir';
-            $acoes[] = 'alteracao_manual';
             $acoes[] = 'validar_anexo';
         }
 

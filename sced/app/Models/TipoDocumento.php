@@ -1,32 +1,80 @@
 <?php
+// app/Models/TipoDocumento.php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class TipoDocumento extends Model
 {
-    protected $fillable = ['nome','descricao','status','obrigatoriedade','departamento_destino_id','cargo_responsavel','sla_horas'];
+    protected $fillable = [
+        'nome',
+        'descricao',
+        'status',
+        'departamento_destino_id',
+        'cargos_responsaveis',   // JSON: ['N1','N2','N3']
+    ];
 
-    public function documentos()          { return $this->hasMany(Documento::class); }
-    public function departamentoDestino() { return $this->belongsTo(Departamento::class, 'departamento_destino_id'); }
+    protected $casts = [
+        'cargos_responsaveis' => 'array',
+    ];
 
-    // Documentos necessários para este serviço (via pivot)
+    // ── Relacionamentos ───────────────────────────────────────
+
+    /** Processos que usam este serviço */
+    public function documentos()
+    {
+        return $this->hasMany(Documento::class);
+    }
+
+    /** Setor de destino */
+    public function departamentoDestino()
+    {
+        return $this->belongsTo(Departamento::class, 'departamento_destino_id');
+    }
+
+    /**
+     * Documentos necessários vinculados a este serviço (ex: RG, CPF, Certidão).
+     * Tabela pivot: tipo_documento_documento_tipo
+     */
     public function documentosTipo()
     {
-        return $this->belongsToMany(DocumentoTipo::class, 'tipo_documento_documento_tipo', 'tipo_documento_id', 'documento_tipo_id');
+        return $this->belongsToMany(
+            DocumentoTipo::class,
+            'tipo_documento_documento_tipo',
+            'tipo_documento_id',
+            'documento_tipo_id'
+        );
     }
 
-    public function getLabelSlaAttribute(): string
+    // ── Helpers ───────────────────────────────────────────────
+
+    /**
+     * Retorna os cargos como array garantido (nunca null).
+     */
+    public function getCargosArrayAttribute(): array
     {
-        if (!$this->sla_horas) return '—';
-        if ($this->sla_horas < 24) return "{$this->sla_horas}h";
-        $dias = intdiv($this->sla_horas, 24);
-        $h    = $this->sla_horas % 24;
-        return $h > 0 ? "{$dias}d {$h}h" : "{$dias} dia(s)";
+        return $this->cargos_responsaveis ?? [];
     }
 
-    public function getLabelObrigatoriedadeAttribute(): string
+    /**
+     * Rótulo legível dos cargos responsáveis.
+     * Ex: "N1 — Atendimento, N2 — Analista"
+     */
+    public function getLabelCargosAttribute(): string
     {
-        return $this->obrigatoriedade === 'obrigatorio' ? 'Obrigatório' : 'Opcional';
+        $mapa = [
+            'N1' => 'N1 — Atendimento',
+            'N2' => 'N2 — Analista',
+            'N3' => 'N3 — Supervisor',
+        ];
+
+        $cargos = $this->cargos_responsaveis ?? [];
+
+        if (empty($cargos)) {
+            return '—';
+        }
+
+        return implode(', ', array_map(fn($c) => $mapa[$c] ?? $c, $cargos));
     }
 }

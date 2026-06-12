@@ -1,11 +1,11 @@
 {{-- ============================================================
      resources/views/processos/create.blade.php
-     Formulário "Novo Processo" — Parte 2
-     • Autocomplete de Serviços via API
+     Formulário "Novo Processo" — Reformulação Visual Fase 2
+     • Autocomplete de Serviços via API (sem SLA)
+     • Steps visuais modernos
      • Setor de destino automático
      • Lista dinâmica de documentos obrigatórios
      • Upload múltiplo com Select de tipo por arquivo
-     • Data bloqueada em hoje
      ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Novo Processo')
@@ -17,24 +17,40 @@
 
 @section('content')
 
+{{-- Indicador de steps --}}
+<div class="create-steps">
+    <div class="create-step create-step--ativo" id="stepInd1">
+        <div class="create-step-num">1</div>
+        <div class="create-step-label">Serviço</div>
+    </div>
+    <div class="create-step-linha"></div>
+    <div class="create-step create-step--inativo" id="stepInd2">
+        <div class="create-step-num">2</div>
+        <div class="create-step-label">Solicitante</div>
+    </div>
+    <div class="create-step-linha"></div>
+    <div class="create-step create-step--inativo" id="stepInd3">
+        <div class="create-step-num">3</div>
+        <div class="create-step-label">Documentos</div>
+    </div>
+</div>
+
 <form method="POST" action="{{ route('documentos.store') }}"
       enctype="multipart/form-data" id="formProcesso" novalidate>
 @csrf
 
 <div class="row g-4">
 
-{{-- ══════════════════════════════════════════════════════════
-     COLUNA PRINCIPAL
-══════════════════════════════════════════════════════════ --}}
+{{-- ══ COLUNA PRINCIPAL ══════════════════════════════════ --}}
 <div class="col-lg-8">
 
-    {{-- ── BLOCO 1: Serviço ─────────────────────────────── --}}
-    <div class="processo-card mb-4">
-        <div class="processo-bloco-header">
-            <div class="processo-step">1</div>
+    {{-- ── BLOCO 1: Serviço ─────────────────────────── --}}
+    <div class="create-card mb-4" id="bloco1">
+        <div class="create-bloco-header">
+            <div class="create-step-badge --ativo">1</div>
             <div>
-                <div class="processo-bloco-titulo">Identificação do Serviço</div>
-                <div class="processo-bloco-sub">Busque e selecione o serviço solicitado</div>
+                <div class="create-bloco-titulo">Identificação do Serviço</div>
+                <div class="create-bloco-sub">Busque e selecione o serviço solicitado</div>
             </div>
         </div>
 
@@ -75,7 +91,7 @@
             </p>
         </div>
 
-        {{-- Info compacta do serviço selecionado --}}
+        {{-- Info compacta do serviço selecionado (sem SLA) --}}
         <div class="servico-info-strip" id="servicoInfoStrip" style="display:none">
             <div class="servico-info-item">
                 <span class="servico-info-label">Destino</span>
@@ -85,20 +101,16 @@
                 <span class="servico-info-label">Responsável</span>
                 <span class="servico-info-valor" id="siCargo">—</span>
             </div>
-            <div class="servico-info-item">
-                <span class="servico-info-label">SLA</span>
-                <span class="servico-info-valor" id="siSla">—</span>
-            </div>
         </div>
     </div>
 
-    {{-- ── BLOCO 2: Dados do Solicitante ───────────────── --}}
-    <div class="processo-card mb-4">
-        <div class="processo-bloco-header">
-            <div class="processo-step">2</div>
+    {{-- ── BLOCO 2: Dados do Solicitante ───────────── --}}
+    <div class="create-card mb-4" id="bloco2">
+        <div class="create-bloco-header">
+            <div class="create-step-badge">2</div>
             <div>
-                <div class="processo-bloco-titulo">Dados do Solicitante</div>
-                <div class="processo-bloco-sub">Identifique quem está abrindo este processo</div>
+                <div class="create-bloco-titulo">Dados do Solicitante</div>
+                <div class="create-bloco-sub">Identifique quem está abrindo este processo</div>
             </div>
         </div>
 
@@ -149,13 +161,13 @@
         </div>
     </div>
 
-    {{-- ── BLOCO 3: Upload de Documentos ───────────────── --}}
-    <div class="processo-card mb-4">
-        <div class="processo-bloco-header">
-            <div class="processo-step">3</div>
+    {{-- ── BLOCO 3: Upload de Documentos ───────────── --}}
+    <div class="create-card mb-4" id="bloco3">
+        <div class="create-bloco-header">
+            <div class="create-step-badge">3</div>
             <div>
-                <div class="processo-bloco-titulo">Documentos Anexos</div>
-                <div class="processo-bloco-sub">Adicione os arquivos necessários para o processo</div>
+                <div class="create-bloco-titulo">Documentos Anexos</div>
+                <div class="create-bloco-sub">Adicione os arquivos necessários para o processo</div>
             </div>
             <div class="bloco-badge-validacao">⚠️ Validação manual posterior</div>
         </div>
@@ -198,9 +210,7 @@
 
 </div>{{-- /col-lg-8 --}}
 
-{{-- ══════════════════════════════════════════════════════════
-     COLUNA LATERAL (resumo + ação)
-══════════════════════════════════════════════════════════ --}}
+{{-- ══ COLUNA LATERAL (resumo + ação) ═══════════════════ --}}
 <div class="col-lg-4">
 
     {{-- Card de resumo --}}
@@ -224,10 +234,6 @@
             <div class="resumo-linha">
                 <span class="resumo-label">Responsável</span>
                 <span class="resumo-valor" id="rCargo">—</span>
-            </div>
-            <div class="resumo-linha">
-                <span class="resumo-label">SLA / Prazo</span>
-                <span class="resumo-valor" id="rSla">—</span>
             </div>
             <div class="resumo-linha">
                 <span class="resumo-label">Arquivos</span>
@@ -258,9 +264,8 @@
 </div>{{-- /row --}}
 </form>
 @endsection
-{{-- ══════════════════════════════════════════════════════════════
-     ESTILOS
-══════════════════════════════════════════════════════════════ --}}
+
+{{-- ══ ESTILOS ════════════════════════════════════════════════ --}}
 @push('styles')
 <style>
 /* ── Variáveis locais (herdam do sistema) ───────────────── */
@@ -271,7 +276,7 @@
 }
 
 /* ── Card de processo ───────────────────────────────────── */
-.processo-card {
+.create-card {
     background: var(--branco);
     border-radius: var(--p-radius);
     border: 1px solid var(--cinza-200);
@@ -279,25 +284,29 @@
     padding: 24px;
     transition: var(--p-trans);
 }
-.processo-card:hover { box-shadow: var(--sombra-hover); }
+.create-card:hover { box-shadow: var(--sombra-hover); }
 
-.processo-bloco-header {
+.create-bloco-header {
     display: flex; align-items: flex-start; gap: 14px;
     margin-bottom: 22px; padding-bottom: 18px;
     border-bottom: 1px solid var(--cinza-200);
 }
-.processo-step {
+.create-step-badge {
     width: 30px; height: 30px; border-radius: 50%;
-    background: var(--azul-claro); color: #fff;
+    background: var(--cinza-200); color: var(--cinza-600);
     font-size: 13px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0; margin-top: 2px;
+    transition: var(--p-trans);
+}
+.create-step-badge.--ativo {
+    background: var(--azul-claro); color: #fff;
     box-shadow: 0 2px 8px rgba(37,99,235,.3);
 }
-.processo-bloco-titulo {
+.create-bloco-titulo {
     font-size: 15px; font-weight: 700; color: var(--azul-escuro);
 }
-.processo-bloco-sub {
+.create-bloco-sub {
     font-size: 12px; color: var(--cinza-400); margin-top: 2px;
 }
 .bloco-badge-validacao {
@@ -422,7 +431,7 @@
 .docs-alert-list li::before { content: "📄"; font-size: 14px; }
 .docs-alert-empty { font-size: 13px; color: var(--cinza-400); margin: 0; }
 
-/* ── Info strip do serviço ──────────────────────────────── */
+/* ── Info strip do serviço (sem SLA) ────────────────────── */
 .servico-info-strip {
     margin-top: 12px; padding: 12px 16px;
     background: var(--cinza-100); border-radius: var(--p-radius-sm);
@@ -532,300 +541,362 @@
 </style>
 @endpush
 
-{{-- ══════════════════════════════════════════════════════════════
-     SCRIPTS
-══════════════════════════════════════════════════════════════ --}}
+{{-- ══ SCRIPTS ════════════════════════════════════════════════ --}}
 @push('scripts')
 <script>
-    // ══════════════════════════════════════════════════════════
-    // CONFIGURAÇÕES E ESTADO GLOBAL DO FORMULÁRIO
-    // ══════════════════════════════════════════════════════════
-    const URL_TIPOS_JSON = "{{ url('documentos/tipos-json') }}";
-    
-    let arquivosSelecionados = [];
-    let documentosObrigatoriosAtuais = [];
-    let debounceTimer = null;
+// ─────────────────────────────────────────────────────────────
+// ESTADO LOCAL
+// ─────────────────────────────────────────────────────────────
+const estado = {
+    servicoId:    null,
+    arquivos:     [],   // [{ file, tipo, uid }]
+    uid:          0,
+};
 
-    // Elementos DOM cacheáveis
-    const acInput = document.getElementById('acInput');
-    const acDropdown = document.getElementById('acDropdown');
-    const acSpinner = document.getElementById('acSpinner');
-    const acClear = document.getElementById('acClear');
-    const servicoId = document.getElementById('servicoId');
-    const setorDestino = document.getElementById('setorDestino');
-    const depDestinoId = document.getElementById('depDestinoId');
-    const docsAlert = document.getElementById('docsAlert');
-    const docsAlertList = document.getElementById('docsAlertList');
-    const docsAlertEmpty = document.getElementById('docsAlertEmpty');
+const TIPOS = {
+    rg:                     'RG — Documento de Identidade',
+    cpf:                    'CPF',
+    contrato:               'Contrato',
+    comprovante_residencia:  'Comprovante de Residência',
+    comprovante_renda:       'Comprovante de Renda',
+    certidao:               'Certidão',
+    laudo:                  'Laudo / Parecer Técnico',
+    outros:                 'Outros',
+};
 
-    // ══════════════════════════════════════════════════════════
-    // 1. AUTOCOMPLETE DE SERVIÇOS (MATCHING COM CLASSES CSS CORRIGIDO)
-    // ══════════════════════════════════════════════════════════
-    acInput.addEventListener('input', function() {
-        const busca = this.value.trim();
-        clearTimeout(debounceTimer);
-
-        if (busca.length < 2) {
-            fecharDropdown();
-            acClear.style.display = busca.length > 0 ? 'block' : 'none';
-            return;
-        }
-
-        acClear.style.display = 'block';
-        acSpinner.classList.add('--ativo'); 
-
-        // Debounce de 300ms para evitar requisições excessivas
-        debounceTimer = setTimeout(() => {
-            fetch(`${URL_TIPOS_JSON}?q=${encodeURIComponent(busca)}`)
-                .then(res => res.json())
-                .then(dados => renderizarDropdown(dados))
-                .catch(err => console.error("Erro ao buscar serviços:", err))
-                .finally(() => acSpinner.classList.remove('--ativo'));
-        }, 300);
-    });
-
-    function renderizarDropdown(itens) {
-        acDropdown.innerHTML = '';
-        if (itens.length === 0) {
-            acDropdown.innerHTML = `<div class="ac-vazio">Nenhum serviço encontrado</div>`;
-            acDropdown.classList.add('--aberto');
-            return;
-        }
-
-        itens.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'ac-item';
-            // Injeta as classes mapeadas no CSS (.ac-item-nome, .ac-item-desc, .ac-item-setor)
-            div.innerHTML = `
-                <div class="ac-item-nome">${item.nome}</div>
-                ${item.descricao ? `<div class="ac-item-desc">${item.descricao}</div>` : ''}
-                <div class="ac-item-setor">${item.setor_nome || 'Setor não definido'}</div>
-            `;
-            div.addEventListener('click', () => selecionarServico(item));
-            acDropdown.appendChild(div);
-        });
-        acDropdown.classList.add('--aberto'); 
-    }
-
-    function selecionarServico(item) {
-        acInput.value = item.nome;
-        acInput.classList.add('--selected');
-        servicoId.value = item.id;
-        fecharDropdown();
-
-        // Vincula as informações do Setor/Departamento automaticamente
-        setorDestino.value = item.setor_nome || '—';
-        depDestinoId.value = item.setor_id || '';
-
-        // Altera a UI das tiras informativas e badges
-        document.getElementById('badgeAutoSetor').style.display = 'inline-block';
-        document.getElementById('hintSetor').innerText = "Setor vinculado por regra de negócio.";
-
-        // Preenche o Strip do Bloco 1
-        document.getElementById('siSetor').innerText = item.setor_nome || '—';
-        document.getElementById('siCargo').innerText = item.cargo_responsavel || '—';
-        document.getElementById('siSla').innerText = item.sla_label || '—';
-        document.getElementById('servicoInfoStrip').style.display = 'flex';
-
-        // Atualiza o Resumo Lateral
-        document.getElementById('rServico').innerText = item.nome;
-        document.getElementById('rDestino').innerText = item.setor_nome || '—';
-        document.getElementById('rCargo').innerText = item.cargo_responsavel || '—';
-        document.getElementById('rSla').innerText = item.sla_label || '—';
-        document.getElementById('resumoVazio').style.display = 'none';
-        document.getElementById('resumoConteudo').style.display = 'block';
-
-        // Busca a lista dinâmica de requisitos de documentos
-        carregarRequisitosDocumentos(item.id);
-    }
-
-    function limparServico() {
-        acInput.value = '';
-        acInput.classList.remove('--selected');
-        servicoId.value = '';
-        setorDestino.value = '';
-        depDestinoId.value = '';
-        acClear.style.display = 'none';
-        document.getElementById('badgeAutoSetor').style.display = 'none';
-        document.getElementById('hintSetor').innerText = "Será preenchido ao selecionar o serviço";
-        document.getElementById('servicoInfoStrip').style.display = 'none';
-        
-        document.getElementById('resumoConteudo').style.display = 'none';
-        document.getElementById('resumoVazio').style.display = 'block';
-        docsAlert.style.display = 'none';
-        fecharDropdown();
-        documentosObrigatoriosAtuais = [];
-        atualizarSelectsDeTipos();
-    }
-
-    function fecharDropdown() {
-        acDropdown.classList.remove('--aberto');
-    }
-
-    // Fecha dropdown se clicar fora
-    document.addEventListener('click', function(e) {
-        if (!document.getElementById('acContainer').contains(e.target)) {
-            fecharDropdown();
+// ─────────────────────────────────────────────────────────────
+// INDICADOR DE STEPS
+// ─────────────────────────────────────────────────────────────
+function atualizarSteps(servicoSelecionado) {
+    const badges = [
+        document.querySelector('#bloco1 .create-step-badge'),
+        document.querySelector('#bloco2 .create-step-badge'),
+        document.querySelector('#bloco3 .create-step-badge'),
+    ];
+    const inds = [
+        document.getElementById('stepInd1'),
+        document.getElementById('stepInd2'),
+        document.getElementById('stepInd3'),
+    ];
+    badges.forEach((b, i) => {
+        if (servicoSelecionado) {
+            b.classList.add('--ativo');
+            inds[i].classList.remove('create-step--inativo');
+            inds[i].classList.add('create-step--ativo');
+        } else if (i > 0) {
+            b.classList.remove('--ativo');
+            inds[i].classList.add('create-step--inativo');
+            inds[i].classList.remove('create-step--ativo');
         }
     });
+}
 
-    // ══════════════════════════════════════════════════════════
-    // 2. REQUISITOS DINÂMICOS DE DOCUMENTOS
-    // ══════════════════════════════════════════════════════════
-    function carregarRequisitosDocumentos(tipoId) {
-        fetch(`/documentos/${tipoId}/requisitos`)
-            .then(res => res.json())
-            .then(dados => {
-                docsAlertList.innerHTML = '';
-                documentosObrigatoriosAtuais = dados.documentos_obrigatorios || [];
+// ─────────────────────────────────────────────────────────────
+// AUTOCOMPLETE
+// ─────────────────────────────────────────────────────────────
+const acInput    = document.getElementById('acInput');
+const acDropdown = document.getElementById('acDropdown');
+const acSpinner  = document.getElementById('acSpinner');
+const acClear    = document.getElementById('acClear');
+let   timer      = null;
+let   resultados = [];
+let   focoIdx    = -1;
 
-                if (documentosObrigatoriosAtuais.length > 0) {
-                    documentosObrigatoriosAtuais.forEach(doc => {
-                        const li = document.createElement('li');
-                        li.innerText = doc;
-                        docsAlertList.appendChild(li);
-                    });
-                    docsAlertEmpty.style.display = 'none';
-                    docsAlertList.style.display = 'flex';
-                } else {
-                    docsAlertEmpty.style.display = 'block';
-                    docsAlertList.style.display = 'none';
-                }
-                docsAlert.style.display = 'block';
-                
-                // Força atualização dos selects nos uploads já inseridos
-                atualizarSelectsDeTipos();
-            })
-            .catch(err => console.error("Erro ao carregar requisitos:", err));
+acInput.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = acInput.value.trim();
+    if (!q) { fecharDropdown(); return; }
+    acSpinner.classList.add('--ativo');
+    timer = setTimeout(() => buscar(q), 300);
+});
+
+acInput.addEventListener('keydown', e => {
+    const itens = acDropdown.querySelectorAll('.ac-item');
+    if (e.key === 'ArrowDown') { e.preventDefault(); focoIdx = Math.min(focoIdx+1, itens.length-1); atualizarFoco(itens); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); focoIdx = Math.max(focoIdx-1, 0); atualizarFoco(itens); }
+    if (e.key === 'Enter')     { e.preventDefault(); if (focoIdx >= 0 && resultados[focoIdx]) selecionar(resultados[focoIdx]); }
+    if (e.key === 'Escape')    { fecharDropdown(); acInput.blur(); }
+});
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('#acContainer')) fecharDropdown();
+});
+
+async function buscar(q) {
+    try {
+        const r = await fetch(`/api/servicos/buscar?q=${encodeURIComponent(q)}`);
+        resultados = await r.json();
+        renderDropdown(resultados);
+    } catch { /* silencia erro de rede */ }
+    finally { acSpinner.classList.remove('--ativo'); }
+}
+
+function renderDropdown(items) {
+    focoIdx = -1;
+    acDropdown.innerHTML = '';
+
+    if (!items.length) {
+        acDropdown.innerHTML = '<div class="ac-vazio">Nenhum serviço encontrado para esta busca</div>';
+        acDropdown.classList.add('--aberto');
+        return;
     }
 
-    // ══════════════════════════════════════════════════════════
-    // 3. UPLOAD DE ARQUIVOS (MAINTAINING STRUCTURAL INTEGRITY)
-    // ══════════════════════════════════════════════════════════
-    const uploadZone = document.getElementById('uploadZone');
+    items.forEach((item, i) => {
+        const div = document.createElement('div');
+        div.className = 'ac-item';
+        div.dataset.i = i;
+        div.innerHTML = `
+            <div class="ac-item-nome">
+                ${esc(item.nome)}
+                ${item.obrigatorio ? '<span class="ac-badge">Obrigatório</span>' : ''}
+            </div>
+            ${item.descricao ? `<div class="ac-item-desc">${esc(item.descricao)}</div>` : ''}
+            ${item.setor_nome ? `<div class="ac-item-setor">🏢 ${esc(item.setor_nome)}</div>` : ''}
+        `;
+        div.addEventListener('mousedown', e => { e.preventDefault(); selecionar(item); });
+        acDropdown.appendChild(div);
+    });
 
-    function handleDrop(e) {
+    acDropdown.classList.add('--aberto');
+}
+
+function atualizarFoco(itens) {
+    itens.forEach(el => el.classList.remove('--foco'));
+    if (focoIdx >= 0 && itens[focoIdx]) {
+        itens[focoIdx].classList.add('--foco');
+        itens[focoIdx].scrollIntoView({ block: 'nearest' });
+    }
+}
+
+function fecharDropdown() {
+    acDropdown.classList.remove('--aberto');
+    acDropdown.innerHTML = '';
+    focoIdx = -1;
+}
+
+async function selecionar(item) {
+    estado.servicoId = item.id;
+    acInput.value = item.nome;
+    acInput.classList.add('--selected');
+    acInput.classList.remove('--erro');
+    document.getElementById('servicoId').value = item.id;
+    acClear.style.display = 'inline';
+    fecharDropdown();
+
+    // Preenche setor
+    preencherSetor(item);
+
+    // Info strip (sem SLA)
+    document.getElementById('siSetor').textContent = item.setor_nome || '—';
+    document.getElementById('siCargo').textContent = item.cargo_responsavel || '—';
+    document.getElementById('servicoInfoStrip').style.display = 'flex';
+
+    // Resumo lateral (sem SLA)
+    document.getElementById('resumoVazio').style.display    = 'none';
+    document.getElementById('resumoConteudo').style.display = 'block';
+    document.getElementById('rServico').textContent = item.nome;
+    document.getElementById('rDestino').textContent = item.setor_nome || '—';
+    document.getElementById('rCargo').textContent   = item.cargo_responsavel || '—';
+
+    // Atualiza steps
+    atualizarSteps(true);
+
+    // Busca documentos obrigatórios
+    await buscarRequisitos(item.id);
+}
+
+function preencherSetor(item) {
+    const campo = document.getElementById('setorDestino');
+    const badge = document.getElementById('badgeAutoSetor');
+    const hint  = document.getElementById('hintSetor');
+    const depId = document.getElementById('depDestinoId');
+
+    if (item.setor_nome) {
+        campo.value = item.setor_nome;
+        depId.value = item.setor_id || '';
+        campo.setAttribute('readonly', true);
+        badge.style.display = 'inline';
+        hint.textContent = '✅ Preenchido automaticamente pelo serviço selecionado';
+        hint.style.color = 'var(--verde)';
+    } else {
+        campo.value = '';
+        depId.value = '';
+        campo.removeAttribute('readonly');
+        badge.style.display = 'none';
+        hint.textContent = 'Setor não configurado — preencha manualmente';
+        hint.style.color = 'var(--amarelo)';
+    }
+}
+
+async function buscarRequisitos(id) {
+    try {
+        const r    = await fetch(`/api/servicos/${id}/requisitos`);
+        const data = await r.json();
+
+        const lista = document.getElementById('docsAlertList');
+        const vazio = document.getElementById('docsAlertEmpty');
+        const alert = document.getElementById('docsAlert');
+
+        lista.innerHTML = '';
+
+        if (data.documentos_obrigatorios?.length) {
+            data.documentos_obrigatorios.forEach(doc => {
+                const li = document.createElement('li');
+                li.textContent = doc;
+                lista.appendChild(li);
+            });
+            lista.style.display = '';
+            vazio.style.display = 'none';
+        } else {
+            lista.style.display = 'none';
+            vazio.style.display = 'block';
+        }
+
+        alert.style.display = 'block';
+    } catch { /* silencia */ }
+}
+
+function limparServico() {
+    estado.servicoId = null;
+    acInput.value = '';
+    acInput.classList.remove('--selected');
+    document.getElementById('servicoId').value = '';
+    acClear.style.display = 'none';
+    document.getElementById('servicoInfoStrip').style.display = 'none';
+    document.getElementById('docsAlert').style.display = 'none';
+    document.getElementById('resumoVazio').style.display    = 'block';
+    document.getElementById('resumoConteudo').style.display = 'none';
+
+    // Reseta setor
+    const campo = document.getElementById('setorDestino');
+    campo.value = '';
+    campo.setAttribute('readonly', true);
+    document.getElementById('depDestinoId').value = '';
+    document.getElementById('badgeAutoSetor').style.display = 'none';
+    const hint = document.getElementById('hintSetor');
+    hint.textContent = 'Será preenchido ao selecionar o serviço';
+    hint.style.color = '';
+
+    atualizarSteps(false);
+    acInput.focus();
+}
+
+// ─────────────────────────────────────────────────────────────
+// UPLOAD
+// ─────────────────────────────────────────────────────────────
+function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('uploadZone').classList.remove('--over');
+    adicionarArquivos(e.dataTransfer.files);
+}
+
+function adicionarArquivos(files) {
+    Array.from(files).forEach(file => {
+        const uid = estado.uid++;
+        estado.arquivos.push({ file, tipo: 'outros', uid });
+        renderItem({ file, tipo: 'outros', uid });
+    });
+    sincronizar();
+}
+
+function renderItem({ file, tipo, uid }) {
+    const kb    = file.size / 1024;
+    const tam   = kb < 1024 ? kb.toFixed(1) + ' KB' : (kb/1024).toFixed(2) + ' MB';
+    const icone = file.type.includes('image') ? '🖼️' : file.name.endsWith('.pdf') ? '📕' : '📄';
+
+    const optsHtml = Object.entries(TIPOS).map(([v, l]) =>
+        `<option value="${v}" ${v === tipo ? 'selected' : ''}>${l}</option>`
+    ).join('');
+
+    const div = document.createElement('div');
+    div.className = 'upload-item';
+    div.id = `uitem-${uid}`;
+    div.innerHTML = `
+        <div class="upload-item-icone">${icone}</div>
+        <div class="upload-item-corpo">
+            <div class="upload-item-nome" title="${esc(file.name)}">${esc(file.name)}</div>
+            <div class="upload-item-meta">${tam}</div>
+            <div class="upload-item-pendente">⏳ Pendente de validação</div>
+            <select class="upload-item-select"
+                    onchange="mudarTipo(${uid}, this.value)"
+                    aria-label="Tipo do documento">
+                ${optsHtml}
+            </select>
+        </div>
+        <button type="button" class="upload-item-remove"
+                onclick="removerItem(${uid})" title="Remover arquivo">✕</button>
+    `;
+
+    document.getElementById('uploadList').appendChild(div);
+}
+
+function mudarTipo(uid, tipo) {
+    const item = estado.arquivos.find(a => a.uid === uid);
+    if (item) { item.tipo = tipo; sincronizar(); }
+}
+
+function removerItem(uid) {
+    estado.arquivos = estado.arquivos.filter(a => a.uid !== uid);
+    const el = document.getElementById(`uitem-${uid}`);
+    if (el) el.remove();
+    sincronizar();
+}
+
+function sincronizar() {
+    // Reconstrói o input file com DataTransfer
+    const dt = new DataTransfer();
+    estado.arquivos.forEach(a => dt.items.add(a.file));
+    document.getElementById('fileInput').files = dt.files;
+
+    // Reconstrói os inputs hidden de tipo
+    const cont = document.getElementById('hiddenInputs');
+    cont.innerHTML = '';
+    estado.arquivos.forEach((a, i) => {
+        const inp = document.createElement('input');
+        inp.type  = 'hidden';
+        inp.name  = `tipos_anexo[${i}]`;
+        inp.value = a.tipo;
+        cont.appendChild(inp);
+    });
+
+    // Atualiza contador no resumo
+    const el = document.getElementById('rAnexos');
+    if (el) el.textContent = estado.arquivos.length;
+}
+
+// ─────────────────────────────────────────────────────────────
+// VALIDAÇÃO NO SUBMIT
+// ─────────────────────────────────────────────────────────────
+document.getElementById('formProcesso').addEventListener('submit', function(e) {
+    if (!document.getElementById('servicoId').value) {
         e.preventDefault();
-        uploadZone.classList.remove('--over');
-        if (e.dataTransfer.files ? e.dataTransfer.files.length > 0 : false) {
-            adicionarArquivos(e.dataTransfer.files);
+        acInput.classList.add('--erro');
+        acInput.focus();
+
+        // Insere mensagem de erro inline se não houver
+        let err = document.querySelector('.ac-container .p-error');
+        if (!err) {
+            err = document.createElement('div');
+            err.className = 'p-error';
+            err.textContent = 'Selecione um serviço antes de continuar.';
+            document.getElementById('acContainer').appendChild(err);
         }
+        return;
     }
 
-    function adicionarArquivos(files) {
-        const dt = new DataTransfer();
-        
-        // Mantém arquivos anteriores no input nativo do formulário
-        arquivosSelecionados.forEach(f => dt.items.add(f));
+    // Feedback visual no botão
+    const btn = document.getElementById('btnAbrir');
+    btn.disabled    = true;
+    btn.textContent = '⏳ Enviando...';
+});
 
-        // Filtra e adiciona os novos
-        for (let i = 0; i < files.length; i++) {
-            const arquivo = files[i];
-            
-            // Validação simples de tamanho (10 MB)
-            if (arquivo.size > 10 * 1024 * 1024) {
-                alert(`O arquivo "${arquivo.name}" excede o limite máximo de 10 MB.`);
-                continue;
-            }
-            
-            arquivosSelecionados.push(arquivo);
-            dt.items.add(arquivo);
-        }
-
-        document.getElementById('fileInput').files = dt.files;
-        renderizarListaArquivos();
-    }
-
-    function removerArquivo(index) {
-        arquivosSelecionados.splice(index, 1);
-        const dt = new DataTransfer();
-        arquivosSelecionados.forEach(f => dt.items.add(f));
-        document.getElementById('fileInput').files = dt.files;
-        
-        renderizarListaArquivos();
-    }
-
-    function renderizarListaArquivos() {
-        const container = document.getElementById('uploadList');
-        const hiddenContainer = document.getElementById('hiddenInputs');
-        
-        container.innerHTML = '';
-        hiddenContainer.innerHTML = '';
-        
-        document.getElementById('rAnexos').innerText = arquivosSelecionados.length;
-
-        arquivosSelecionados.forEach((arq, index) => {
-            const tamanhoMB = (arq.size / (1024 * 1024)).toFixed(2);
-            const item = document.createElement('div');
-            item.className = 'upload-item';
-            
-            // Layout HTML corrigido para refletir exatamente os nós do seu CSS
-            item.innerHTML = `
-                <span class="upload-item-icone">📄</span>
-                <div class="upload-item-corpo">
-                    <div class="upload-item-nome" title="${arq.name}">${arq.name}</div>
-                    <div class="upload-item-meta">${tamanhoMB} MB</div>
-                    <div class="upload-item-pendente">⚠️ Aguardando validação</div>
-                    
-                    <select class="upload-item-select p-select-tipo-anexo" data-index="${index}" onchange="atualizarHiddenTipo(${index}, this.value)">
-                        <option value="outros">Outros Documentos / Geral</option>
-                    </select>
-                </div>
-                <button type="button" class="upload-item-remove" onclick="removerArquivo(${index})">✕</button>
-            `;
-            container.appendChild(item);
-
-            // Cria o input oculto padrão que o Laravel lerá no request como tipos_anexo[n]
-            const hidden = document.createElement('input');
-            hidden.type = 'hidden';
-            hidden.name = `tipos_anexo[${index}]`;
-            hidden.id = `hidden_tipo_${index}`;
-            hidden.value = 'outros';
-            hiddenContainer.appendChild(hidden);
-        });
-
-        atualizarSelectsDeTipos();
-    }
-
-    function atualizarHiddenTipo(index, valor) {
-        const input = document.getElementById(`hidden_tipo_${index}`);
-        if (input) input.value = valor;
-    }
-
-    function atualizarSelectsDeTipos() {
-        const selects = document.querySelectorAll('.p-select-tipo-anexo');
-        
-        selects.forEach(select => {
-            const index = select.getAttribute('data-index');
-            const valorSalvo = document.getElementById(`hidden_tipo_${index}`)?.value || 'outros';
-            
-            // Reseta mantendo a opção geral padrão
-            select.innerHTML = `<option value="outros">Outros Documentos / Geral</option>`;
-            
-            // Popula as opções baseado nos requisitos obrigatórios atuais mapeados pelo serviço
-            if (documentosObrigatoriosAtuais.length > 0) {
-                const grupo = document.createElement('optgroup');
-                grupo.label = "Documentos Exigidos para o Serviço";
-                
-                documentosObrigatoriosAtuais.forEach(doc => {
-                    const opt = document.createElement('option');
-                    opt.value = doc;
-                    opt.innerText = doc;
-                    grupo.appendChild(opt);
-                });
-                select.appendChild(grupo);
-            }
-            
-            // Restaura o valor selecionado
-            select.value = valorSalvo;
-        });
-    }
-
-    // Intercepta cliques nos selects internos da dropzone para não disparar o seletor de arquivos de fundo
-    document.getElementById('uploadList').addEventListener('click', function(e) {
-        if (e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'OPTION') {
-            e.stopPropagation();
-        }
-    });
+// ─────────────────────────────────────────────────────────────
+// UTILIDADE
+// ─────────────────────────────────────────────────────────────
+function esc(s) {
+    return String(s ?? '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 </script>
 @endpush

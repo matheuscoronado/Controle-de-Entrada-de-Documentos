@@ -1,10 +1,10 @@
 {{-- ============================================================
      resources/views/processos/index.blade.php
-     Listagem de Processos — Parte 2
+     Listagem de Processos — Reformulação Visual Fase 1
      ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Processos')
-@section('subtitle', 'Consulta e acompanhamento de processos abertos')
+@section('subtitle', 'Consulta e acompanhamento de processos')
 
 @section('topbar-actions')
     <a href="{{ route('documentos.create') }}" class="btn-primary-sced">
@@ -14,31 +14,30 @@
 
 @section('content')
 
-{{-- Filtros --}}
-<div class="filtros-card">
-    <form method="GET" action="{{ route('documentos.index') }}">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-            <span style="font-size:14px;font-weight:600;color:var(--azul-escuro);">🔍 Filtros</span>
+{{-- ── FILTROS ───────────────────────────────────────────── --}}
+<div class="idx-filtros">
+    <form method="GET" action="{{ route('documentos.index') }}" id="formFiltros">
+        <div class="idx-filtros-header">
+            <span class="idx-filtros-titulo">Filtrar processos</span>
             @if(request()->anyFilled(['protocolo','remetente','tipo_documento_id','status','data_inicio','data_fim']))
-                <a href="{{ route('documentos.index') }}" class="btn-secondary-sced"
-                   style="padding:4px 10px;font-size:12px;">✕ Limpar</a>
+                <a href="{{ route('documentos.index') }}" class="idx-limpar-btn">✕ Limpar filtros</a>
             @endif
         </div>
-        <div class="row g-2">
-            <div class="col-12 col-md-2">
-                <label>Protocolo</label>
+        <div class="row g-2 align-items-end">
+            <div class="col-6 col-md-2">
+                <label class="idx-label">Protocolo</label>
                 <input type="text" name="protocolo" class="form-input-sced"
                        placeholder="2026-000001" value="{{ request('protocolo') }}">
             </div>
-            <div class="col-12 col-md-3">
-                <label>Solicitante</label>
+            <div class="col-6 col-md-3">
+                <label class="idx-label">Solicitante</label>
                 <input type="text" name="remetente" class="form-input-sced"
                        placeholder="Nome do solicitante" value="{{ request('remetente') }}">
             </div>
-            <div class="col-12 col-md-2">
-                <label>Serviço</label>
+            <div class="col-6 col-md-2">
+                <label class="idx-label">Serviço</label>
                 <select name="tipo_documento_id" class="form-input-sced">
-                    <option value="">Todos</option>
+                    <option value="">Todos os serviços</option>
                     @foreach($tipos as $tipo)
                         <option value="{{ $tipo->id }}" {{ request('tipo_documento_id') == $tipo->id ? 'selected' : '' }}>
                             {{ $tipo->nome }}
@@ -46,96 +45,116 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-12 col-md-2">
-                <label>Status</label>
+            <div class="col-6 col-md-2">
+                <label class="idx-label">Status</label>
                 <select name="status" class="form-input-sced">
                     <option value="">Todos</option>
-                    <option value="novo"        {{ request('status') == 'novo'        ? 'selected':'' }}>Novo</option>
-                    <option value="recebido"    {{ request('status') == 'recebido'    ? 'selected':'' }}>Recebido</option>
-                    <option value="em_analise"  {{ request('status') == 'em_analise'  ? 'selected':'' }}>Em Análise</option>
-                    <option value="encaminhado" {{ request('status') == 'encaminhado' ? 'selected':'' }}>Encaminhado</option>
-                    <option value="finalizado"  {{ request('status') == 'finalizado'  ? 'selected':'' }}>Finalizado</option>
+                    <option value="novo"       {{ request('status') == 'novo'       ? 'selected':'' }}>Novo</option>
+                    <option value="em_analise" {{ request('status') == 'em_analise' ? 'selected':'' }}>Em Análise</option>
+                    <option value="pendente"   {{ request('status') == 'pendente'   ? 'selected':'' }}>Pendente</option>
+                    <option value="finalizado" {{ request('status') == 'finalizado' ? 'selected':'' }}>Finalizado</option>
+                    <option value="desativado" {{ request('status') == 'desativado' ? 'selected':'' }}>Desativado</option>
                 </select>
             </div>
             <div class="col-6 col-md-1">
-                <label>De</label>
+                <label class="idx-label">De</label>
                 <input type="date" name="data_inicio" class="form-input-sced" value="{{ request('data_inicio') }}">
             </div>
             <div class="col-6 col-md-1">
-                <label>Até</label>
+                <label class="idx-label">Até</label>
                 <input type="date" name="data_fim" class="form-input-sced" value="{{ request('data_fim') }}">
             </div>
-            <div class="col-12 col-md-1" style="display:flex;align-items:flex-end;">
-                <button type="submit" class="btn-primary-sced" style="width:100%;">Buscar</button>
+            <div class="col-12 col-md-1">
+                <button type="submit" class="btn-primary-sced" style="width:100%;justify-content:center;">
+                    Buscar
+                </button>
             </div>
         </div>
     </form>
 </div>
 
-{{-- Tabela --}}
-<div class="card-sced">
-    <div style="overflow-x:auto;">
-        <table class="tabela-sced">
+{{-- ── TABELA DESKTOP ────────────────────────────────────── --}}
+<div class="card-sced idx-table-card">
+
+    {{-- Cabeçalho da tabela com total --}}
+    <div class="idx-table-header">
+        <span class="idx-table-count">
+            {{ $documentos->total() }} processo(s) encontrado(s)
+        </span>
+        @if(request()->anyFilled(['protocolo','remetente','tipo_documento_id','status','data_inicio','data_fim']))
+            <span class="idx-table-filtered">Filtros ativos</span>
+        @endif
+    </div>
+
+    {{-- Tabela (visível em telas md+) --}}
+    <div class="idx-tabela-wrap">
+        <table class="tabela-sced idx-tabela">
             <thead>
                 <tr>
                     <th>Protocolo</th>
                     <th>Serviço</th>
                     <th>Solicitante</th>
-                    <th>Setor Destino</th>
-                    <th>Abertura</th>
-                    <th>Anexos</th>
+                    <th class="d-none d-lg-table-cell">Setor Destino</th>
+                    <th class="d-none d-md-table-cell">Abertura</th>
+                    <th class="text-center">Anexos</th>
                     <th>Status</th>
-                    <th style="text-align:center;">Ação</th>
+                    <th class="text-center">Ação</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($documentos as $doc)
-                <tr>
+                @php
+                    $statusLabel = [
+                        'novo'       => 'Novo',
+                        'em_analise' => 'Em Análise',
+                        'pendente'   => 'Pendente',
+                        'finalizado' => 'Finalizado',
+                        'desativado' => 'Desativado',
+                    ];
+                    $nAnexos = $doc->anexos_count ?? 0;
+                @endphp
+                <tr class="idx-tr">
                     <td>
                         <span class="protocolo-codigo">{{ $doc->numero_protocolo }}</span>
                     </td>
-                    <td style="font-weight:600;font-size:13px;">{{ $doc->tipoDocumento->nome }}</td>
-                    <td style="font-size:13px;">{{ $doc->remetente }}</td>
-                    <td style="font-size:13px;color:var(--cinza-600);">{{ $doc->setor_destino }}</td>
-                    <td style="font-size:13px;color:var(--cinza-600);white-space:nowrap;">
+                    <td class="idx-td-servico">{{ $doc->tipoDocumento->nome }}</td>
+                    <td class="idx-td-text">{{ $doc->remetente }}</td>
+                    <td class="idx-td-muted d-none d-lg-table-cell">{{ $doc->setor_destino }}</td>
+                    <td class="idx-td-muted d-none d-md-table-cell" style="white-space:nowrap;">
                         {{ \Carbon\Carbon::parse($doc->data_recebimento)->format('d/m/Y') }}
                     </td>
-                    <td style="text-align:center;">
-                        @php $nAnexos = $doc->anexos_count ?? 0; @endphp
+                    <td class="text-center">
                         @if($nAnexos > 0)
-                            <span style="font-size:12px;font-weight:600;color:var(--azul-claro);">
-                                📎 {{ $nAnexos }}
-                            </span>
+                            <span class="idx-anexo-badge">📎 {{ $nAnexos }}</span>
                         @else
-                            <span style="color:var(--cinza-400);font-size:12px;">—</span>
+                            <span class="idx-td-muted">—</span>
                         @endif
                     </td>
                     <td>
                         <span class="badge-status badge-{{ $doc->status }}">
-                            {{ [
-                                'novo'        => 'Novo',
-                                'recebido'    => 'Recebido',
-                                'em_analise'  => 'Em Análise',
-                                'encaminhado' => 'Encaminhado',
-                                'finalizado'  => 'Finalizado'
-                            ][$doc->status] ?? ucfirst($doc->status) }}
+                            {{ $statusLabel[$doc->status] ?? ucfirst($doc->status) }}
                         </span>
                     </td>
-                    <td style="text-align:center;">
-                        <a href="{{ route('documentos.show', $doc) }}"
-                           class="btn-outline-sced" style="font-size:12px;padding:5px 12px;">
-                            Ver
+                    <td class="text-center">
+                        <a href="{{ route('documentos.show', $doc) }}" class="idx-btn-ver">
+                            Ver →
                         </a>
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" style="text-align:center;padding:48px;color:var(--cinza-400);">
-                        <div style="font-size:32px;margin-bottom:8px;">📂</div>
-                        Nenhum processo encontrado.<br>
-                        <a href="{{ route('documentos.create') }}" style="color:var(--azul-claro);font-weight:600;">
-                            Abrir o primeiro processo →
-                        </a>
+                    <td colspan="8" class="idx-empty-cell">
+                        <div class="idx-empty">
+                            <div class="idx-empty-icon">📂</div>
+                            <div class="idx-empty-text">Nenhum processo encontrado</div>
+                            @if(request()->anyFilled(['protocolo','remetente','tipo_documento_id','status','data_inicio','data_fim']))
+                                <a href="{{ route('documentos.index') }}" class="idx-empty-link">Limpar filtros</a>
+                            @else
+                                <a href="{{ route('documentos.create') }}" class="idx-empty-link">
+                                    Abrir o primeiro processo →
+                                </a>
+                            @endif
+                        </div>
                     </td>
                 </tr>
                 @endforelse
@@ -143,8 +162,50 @@
         </table>
     </div>
 
+    {{-- Cards mobile (visível apenas em telas xs/sm) --}}
+    <div class="idx-cards-mobile">
+        @forelse($documentos as $doc)
+        @php
+            $statusLabel = [
+                'novo'       => 'Novo',
+                'em_analise' => 'Em Análise',
+                'pendente'   => 'Pendente',
+                'finalizado' => 'Finalizado',
+                'desativado' => 'Desativado',
+            ];
+            $nAnexos = $doc->anexos_count ?? 0;
+        @endphp
+        <div class="idx-card-mobile">
+            <div class="idx-card-mobile-top">
+                <span class="protocolo-codigo">{{ $doc->numero_protocolo }}</span>
+                <span class="badge-status badge-{{ $doc->status }}">
+                    {{ $statusLabel[$doc->status] ?? ucfirst($doc->status) }}
+                </span>
+            </div>
+            <div class="idx-card-mobile-servico">{{ $doc->tipoDocumento->nome }}</div>
+            <div class="idx-card-mobile-meta">
+                <span>{{ $doc->remetente }}</span>
+                <span>{{ \Carbon\Carbon::parse($doc->data_recebimento)->format('d/m/Y') }}</span>
+                @if($nAnexos > 0)<span>📎 {{ $nAnexos }}</span>@endif
+            </div>
+            <a href="{{ route('documentos.show', $doc) }}" class="idx-card-mobile-btn">
+                Ver detalhes →
+            </a>
+        </div>
+        @empty
+        <div class="idx-empty" style="padding:40px 16px;">
+            <div class="idx-empty-icon">📂</div>
+            <div class="idx-empty-text">Nenhum processo encontrado</div>
+            <a href="{{ route('documentos.create') }}" class="idx-empty-link">
+                Abrir o primeiro processo →
+            </a>
+        </div>
+        @endforelse
+    </div>
+
+    {{-- Paginação --}}
     @if($documentos->hasPages())
-    <div style="padding:16px 24px;border-top:1px solid var(--cinza-200);">
+    <div class="idx-pagination">
         {{ $documentos->withQueryString()->links() }}
     </div>
     @endif

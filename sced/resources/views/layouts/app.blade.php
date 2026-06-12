@@ -1,10 +1,6 @@
 {{-- ============================================================
-     resources/views/layouts/app.blade.php — PARTE 4
-     Mudanças:
-     • "Documentos" → "Processos" em todos os labels
-     • Badge numérico nos links com processos pendentes
-     • Meta CSRF para fetch/AJAX
-     • Sidebar status N3 e admin separados
+     resources/views/layouts/app.blade.php
+     Alteração: adicionado link "Cadastro de Documentos" na sidebar (admin)
      ============================================================ --}}
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -59,6 +55,11 @@
         {{-- ADMIN ──────────────────────────────────────────── --}}
         @if(auth()->user()->isAdmin())
         <div class="nav-section-label">Administração</div>
+
+        <a href="{{ route('documentos-tipo.index') }}"
+           class="sidebar-link {{ request()->routeIs('documentos-tipo.*') ? 'active' : '' }}">
+            <span class="nav-icon">📄</span> Cadastro de Documentos
+        </a>
 
         <a href="{{ route('usuarios.index') }}"
            class="sidebar-link {{ request()->routeIs('usuarios.*') ? 'active' : '' }}">
@@ -120,7 +121,7 @@
             <div class="topbar-title">@yield('title', 'Dashboard')</div>
             <div class="topbar-sub">@yield('subtitle', '')</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div class="topbar-actions">
             {{-- Botão menu mobile --}}
             <button class="btn-secondary-sced d-lg-none"
                     onclick="document.getElementById('sidebar').classList.toggle('open')"

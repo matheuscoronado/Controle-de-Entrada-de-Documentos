@@ -11,11 +11,6 @@
 
 @section('content')
 
-{{-- Mensagens --}}
-@if(session('success'))
-    <div class="alert-sced alert-success mb-4">✅ {{ session('success') }}</div>
-@endif
-
 {{-- Cards de resumo --}}
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-lg-3">

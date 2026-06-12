@@ -211,6 +211,32 @@ body {
   flex-shrink: 0;
   z-index: 50;
   gap: 12px;
+  flex-wrap: wrap;  /* ✅ CORRIGIDO: botões ficam visíveis em qualquer resolução */
+}
+
+/* Garante que os botões do topbar nunca fiquem ocultos */
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 576px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .topbar-actions {
+    width: 100%;
+  }
+  .topbar-actions .btn-primary-sced,
+  .topbar-actions .btn-secondary-sced,
+  .topbar-actions .btn-outline-sced {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .topbar-title { font-size: 19px; font-weight: 700; color: var(--azul-escuro); }

@@ -28,10 +28,10 @@ class UsuarioController extends Controller
             'nome'            => 'required|string|max:255',
             'email'           => 'required|email|unique:users',
             'password'        => 'required|min:6|confirmed',
-            // CORREÇÃO: adicionado 'n3' ao enum de perfis permitidos
             'perfil'          => 'required|in:administrador,n3,operador',
             'departamento_id' => 'required|exists:departamentos,id',
             'cargo'           => 'required|in:N1,N2,N3',
+            'pode_assumir'    => 'nullable|boolean',
         ]);
 
         $user = User::create([
@@ -42,6 +42,7 @@ class UsuarioController extends Controller
             'status'          => 'ativo',
             'departamento_id' => $request->departamento_id,
             'cargo'           => $request->cargo,
+            'pode_assumir'    => $request->boolean('pode_assumir'),
         ]);
 
         LogAuditoria::create([
@@ -65,11 +66,11 @@ class UsuarioController extends Controller
     {
         $request->validate([
             'nome'            => 'required|string|max:255',
-            // CORREÇÃO: adicionado 'n3' ao enum de perfis permitidos
             'perfil'          => 'required|in:administrador,n3,operador',
             'status'          => 'required|in:ativo,inativo',
             'departamento_id' => 'required|exists:departamentos,id',
             'cargo'           => 'required|in:N1,N2,N3',
+            'pode_assumir'    => 'nullable|boolean',
         ]);
 
         $usuario->update([
@@ -78,6 +79,7 @@ class UsuarioController extends Controller
             'status'          => $request->status,
             'departamento_id' => $request->departamento_id,
             'cargo'           => $request->cargo,
+            'pode_assumir'    => $request->boolean('pode_assumir'),
         ]);
 
         return redirect()->route('usuarios.index')->with('success', 'Usuário atualizado!');

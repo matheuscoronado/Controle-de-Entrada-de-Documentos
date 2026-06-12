@@ -86,7 +86,6 @@ class ProcessoController extends Controller
             'setor_destino'           => $data['setor_destino'],
             'departamento_destino_id' => $data['departamento_destino_id'] ?? null,
             'status'                  => 'novo',
-            // CORREÇÃO: usa a data informada pelo usuário, não today() fixo
             'data_recebimento'        => $data['data_recebimento'],
         ]);
 
@@ -136,7 +135,7 @@ class ProcessoController extends Controller
             })
             ->with('departamentoDestino:id,nome')
             ->select(['id', 'nome', 'descricao', 'obrigatoriedade',
-                      'departamento_destino_id', 'cargo_responsavel', 'sla_horas'])
+                      'departamento_destino_id', 'cargo_responsavel'])
             ->orderBy('nome')
             ->limit(10)
             ->get();
@@ -149,21 +148,26 @@ class ProcessoController extends Controller
             'setor_nome'       => $s->departamentoDestino?->nome ?? '',
             'setor_id'         => $s->departamento_destino_id,
             'cargo_responsavel'=> $s->cargo_responsavel,
-            'sla_label'        => $s->label_sla,
         ]));
     }
 
     public function requisitosJson(int $id): JsonResponse
     {
-        $servico = TipoDocumento::with('departamentoDestino:id,nome')->findOrFail($id);
+        // Carrega o serviço junto com setor de destino e documentos vinculados
+        // via relacionamento atual:
+        //   TipoDocumento → documentosTipo (pivot tipo_documento_documento_tipo) → DocumentoTipo
+        $servico = TipoDocumento::with([
+            'departamentoDestino:id,nome',
+            'documentosTipo',
+        ])->findOrFail($id);
 
-        $obrigatorios = TipoDocumento::where('status', 'ativo')
-            ->where('obrigatoriedade', 'obrigatorio')
-            ->where('id', '!=', $id)
-            ->when($servico->departamento_destino_id, fn($q) =>
-                $q->where('departamento_destino_id', $servico->departamento_destino_id)
-            )
-            ->pluck('nome')
+        // Lista de documentos exigidos pelo serviço conforme estrutura atual (DocumentoTipo)
+        $obrigatorios = $servico->documentosTipo
+            ->map(fn($doc) => [
+                'id'   => $doc->id,
+                'nome' => $doc->nome,
+                'tipo' => $doc->tipo, // 'obrigatorio' | 'opcional'
+            ])
             ->values();
 
         return response()->json([
@@ -173,7 +177,6 @@ class ProcessoController extends Controller
                 'setor'       => $servico->departamentoDestino?->nome,
                 'setor_id'    => $servico->departamento_destino_id,
                 'responsavel' => $servico->cargo_responsavel,
-                'sla'         => $servico->label_sla,
                 'obrigatorio' => $servico->obrigatoriedade === 'obrigatorio',
             ],
             'documentos_obrigatorios' => $obrigatorios,

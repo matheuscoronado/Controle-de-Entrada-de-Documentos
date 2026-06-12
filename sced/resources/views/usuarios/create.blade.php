@@ -140,6 +140,25 @@
                     </div>
                 </div>
 
+                {{-- Permissão de Assumir Processos --}}
+                <div class="form-group" style="padding: 16px; background: var(--cinza-50, #f8fafc); border-radius: var(--radius-sm); border: 1.5px solid var(--cinza-200);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                        <div>
+                            <div style="font-size:14px; font-weight:600; color:var(--cinza-800);">🎯 Pode Assumir Processos</div>
+                            <div style="font-size:12px; color:var(--cinza-400); margin-top:3px;">
+                                Permite que este usuário assuma processos do seu setor. Administradores e N3 sempre podem assumir independentemente desta configuração.
+                            </div>
+                        </div>
+                        <label style="position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0;">
+                            <input type="checkbox" name="pode_assumir" value="1"
+                                   id="pode_assumir_create"
+                                   {{ old('pode_assumir') ? 'checked' : '' }}
+                                   style="opacity:0; width:0; height:0;">
+                            <span class="toggle-track" onclick="document.getElementById('pode_assumir_create').click(); updateToggle('pode_assumir_create')"></span>
+                        </label>
+                    </div>
+                </div>
+
                 <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px; padding-top:20px; border-top:1px solid var(--cinza-200);">
                     <a href="{{ route('usuarios.index') }}" class="btn-secondary-sced">Cancelar</a>
                     <button type="submit" class="btn-primary-sced">💾 Cadastrar Usuário</button>
@@ -149,6 +168,18 @@
     </div>
 </div>
 
+<style>
+.toggle-track {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--cinza-200, #e2e8f0); border-radius: 24px; transition: .2s;
+}
+.toggle-track:before {
+    position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+    background: white; border-radius: 50%; transition: .2s;
+}
+input:checked + .toggle-track { background: var(--azul-claro, #2563eb); }
+input:checked + .toggle-track:before { transform: translateX(20px); }
+</style>
 <script>
     function toggleSenha(id, btn) {
         const input = document.getElementById(id);
@@ -156,5 +187,6 @@
         input.type = type;
         btn.style.color = type === 'text' ? 'var(--azul-primario)' : '#94a3b8';
     }
+    function updateToggle(id) {}
 </script>
 @endsection
