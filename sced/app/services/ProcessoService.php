@@ -12,10 +12,11 @@ use App\Exceptions\StatusTransitionException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ProcessoService
 {
-    // 💡 Ajustado: Mapeamento Direcional [Status Atual => Destinos Permitidos]
+    // Mapeamento de transições permitidas
     private const TRANSICOES_MANUAIS = [
         'novo'        => ['em_analise', 'pendente', 'desativado'],
         'em_analise'  => ['novo', 'pendente', 'finalizado', 'desativado'],
@@ -71,7 +72,7 @@ class ProcessoService
             ]);
 
             return $doc->fresh();
-    });
+        });
     }
 
     // ════════════════════════════════════════════════════════
@@ -116,7 +117,7 @@ class ProcessoService
             ]);
 
             return $doc->fresh();
-    });
+        });
     }
 
     // ════════════════════════════════════════════════════════
@@ -136,6 +137,8 @@ class ProcessoService
 
         return DB::transaction(function () use ($doc, $user, $observacoes, $novosAnexos, $tiposAnexo) {
             $anterior = $doc->status;
+            
+            // Processa novos anexos (sem substituir os existentes)
             $uploadados = $this->processarAnexos($doc, $user, $novosAnexos, $tiposAnexo);
 
             $doc->update([
@@ -147,7 +150,7 @@ class ProcessoService
             $this->registrarHistorico($doc, $anterior, [
                 'tipo'            => 'retorno',
                 'usuario_id'      => $user->id,
-                'usuario_destino_id' => $doc->atribuido_a_id, // Retorna direto para o analista responsável se houver
+                'usuario_destino_id' => $doc->atribuido_a_id,
                 'status_novo'     => 'em_analise',
                 'observacoes'     => $observacoes ?? 'Ajustes realizados e processo reenviado.',
             ]);
@@ -157,11 +160,11 @@ class ProcessoService
                 'status_anterior'    => $anterior,
                 'status_novo'        => 'em_analise',
                 'uploads_realizados' => $uploadados,
-                'descricao_legivel'  => "Processo {$doc->numero_protocolo} retornado pelo solicitante {$user->nome}.",
+                'descricao_legivel'  => "Processo {$doc->numero_protocolo} retornado pelo solicitante {$user->nome} com " . count($uploadados) . " novo(s) anexo(s).",
             ]);
 
             return $doc->fresh();
-    });
+        });
     }
 
     // ════════════════════════════════════════════════════════
@@ -193,7 +196,7 @@ class ProcessoService
             ]);
 
             return $doc->fresh();
-    });
+        });
     }
 
     // ════════════════════════════════════════════════════════
@@ -237,7 +240,7 @@ class ProcessoService
             ]);
 
             return $doc->fresh();
-    });
+        });
     }
 
     // ════════════════════════════════════════════════════════
@@ -277,7 +280,7 @@ class ProcessoService
             ]);
 
             return $doc->fresh();
-    });
+        });
     }
 
     // ════════════════════════════════════════════════════════
@@ -316,7 +319,7 @@ class ProcessoService
             ]);
 
             return $doc->fresh();
-    });
+        });
     }
 
     // ════════════════════════════════════════════════════════
@@ -355,7 +358,7 @@ class ProcessoService
             ]);
 
             return $doc->fresh();
-    });
+        });
     }
 
     // ════════════════════════════════════════════════════════
@@ -412,11 +415,11 @@ class ProcessoService
             ]);
 
             return $anexoAntigo->fresh();
-    });
+        });
     }
 
     // ════════════════════════════════════════════════════════
-    // 10. VALIDAR ANEXO — admin/N3
+    // 10. VALIDAR ANEXO
     // ════════════════════════════════════════════════════════
 
     public function validarAnexo(
@@ -426,9 +429,12 @@ class ProcessoService
         string       $status, 
         ?string      $observacao = null
     ): ArquivoAnexo {
-        // 🛡️ CORREÇÃO DE SEGURANÇA: Garante o vínculo íntegro do anexo com o processo injetado
         if ($anexo->documento_id !== $doc->id) {
-            throw new \InvalidArgumentException('O anexo informado não pertence a este processo.');
+            throw new \InvalidArgumentException(
+                "O anexo informado não pertence a este processo. " .
+                "Anexo ID: {$anexo->id} (documento_id: {$anexo->documento_id}) - " .
+                "Processo ID: {$doc->id}"
+            );
         }
 
         if (!in_array($status, ['aprovado', 'rejeitado'])) {
@@ -436,10 +442,15 @@ class ProcessoService
         }
 
         $anterior = $anexo->status_validacao;
+        $observacaoFinal = $observacao;
+
+        if ($status === 'rejeitado' && empty($observacaoFinal)) {
+            $observacaoFinal = 'Documento recusado sem motivo informado.';
+        }
 
         $anexo->update([
             'status_validacao'     => $status,
-            'observacao_validacao' => $observacao,
+            'observacao_validacao' => $observacaoFinal,
             'validado_por'         => $user->id,
             'validado_em'          => now(),
         ]);
@@ -448,8 +459,13 @@ class ProcessoService
             'modulo'           => 'processos',
             'status_anterior'  => $anterior,
             'status_novo'      => $status,
-            'campos_alterados' => ['status_validacao' => ['de' => $anterior, 'para' => $status]],
-            'descricao_legivel'=> "Anexo '{$anexo->nome_arquivo}' {$status} por {$user->nome}.",
+            'campos_alterados' => [
+                'status_validacao' => ['de' => $anterior, 'para' => $status],
+                'validado_por'     => ['de' => null, 'para' => $user->id],
+                'observacao'       => ['de' => null, 'para' => $observacaoFinal]
+            ],
+            'descricao_legivel' => "Anexo '{$anexo->nome_arquivo}' foi {$status} por {$user->nome}." . 
+                                   ($observacaoFinal ? " Motivo: {$observacaoFinal}" : ""),
         ]);
 
         return $anexo->fresh();
@@ -469,24 +485,39 @@ class ProcessoService
         ], $dados));
     }
 
+    /**
+     * Processa anexos adicionando ao processo (não substitui os existentes)
+     */
     private function processarAnexos(Documento $doc, User $user, array $arquivos, array $tipos): array
     {
         $nomes = [];
+        
+        if (empty($arquivos)) {
+            return $nomes;
+        }
+        
         foreach ($arquivos as $i => $file) {
-            if (!$file instanceof UploadedFile) continue;
+            if (!$file instanceof UploadedFile) {
+                continue;
+            }
+            
             $caminho = $file->store('anexos', 'public');
+            $tipoAnexo = isset($tipos[$i]) && !empty($tipos[$i]) ? $tipos[$i] : 'outros';
+            
             ArquivoAnexo::create([
                 'documento_id'    => $doc->id,
                 'usuario_id'      => $user->id,
-                'tipo_anexo'      => $tipos[$i] ?? 'outros',
+                'tipo_anexo'      => $tipoAnexo,
                 'status_validacao'=> 'pendente',
                 'nome_arquivo'    => $file->getClientOriginalName(),
                 'caminho_arquivo' => $caminho,
                 'tipo_mime'       => $file->getMimeType(),
                 'tamanho_bytes'   => $file->getSize(),
             ]);
+            
             $nomes[] = $file->getClientOriginalName();
         }
+        
         return $nomes;
     }
 
@@ -494,49 +525,34 @@ class ProcessoService
     {
         $acoes = [];
 
-        // Admin tem acesso total (alteração manual de status inclusa)
         if ($user->isAdmin()) {
             return ['assumir', 'devolver', 'retornar', 'finalizar',
                     'desativar', 'reabrir', 'editar', 'alteracao_manual',
                     'substituir_anexo', 'validar_anexo'];
         }
 
-        // ── ASSUMIR ────────────────────────────────────────────────────────────
-        // Condições: status novo/pendente, sem responsável, e usuário pertence
-        // ao departamento de destino do processo (ou do serviço associado).
-        // ALÉM DISSO: usuário deve ter permissão habilitada para assumir.
         if (in_array($doc->status, ['novo', 'pendente']) && !$doc->atribuido_a_id) {
-            // Verifica permissão de assumir (flag pode_assumir ou perfil N3/Admin)
             if ($user->podeAssumirProcesso()) {
-                // Determina o departamento de destino (do processo ou do serviço)
                 $depDestino = $doc->departamento_destino_id
                             ?? optional($doc->tipoDocumento)->departamento_destino_id;
 
                 if (!$depDestino || (int)$user->departamento_id === (int)$depDestino) {
-                    // Sem destino definido OU usuário pertence ao setor correto
                     $acoes[] = 'assumir';
                 }
             }
         }
 
-        // ── DEVOLVER + FINALIZAR ───────────────────────────────────────────────
-        // Apenas o analista que assumiu o processo
         if ($doc->status === 'em_analise' && $doc->atribuido_a_id === $user->id) {
             $acoes[] = 'devolver';
             $acoes[] = 'finalizar';
         }
 
-        // ── REENVIAR (retornar) ────────────────────────────────────────────────
-        // Apenas o solicitante quando o processo foi devolvido
         if ($doc->status === 'pendente' && $doc->usuario_registro_id === $user->id) {
             $acoes[] = 'retornar';
             $acoes[] = 'substituir_anexo';
             $acoes[] = 'editar';
         }
 
-        // ── N3 (Supervisor) ───────────────────────────────────────────────────
-        // Pode desativar, reabrir e validar anexos — mas NÃO alterar status manual
-        // (status manual é exclusivo do ADMIN)
         if ($user->isN3()) {
             $acoes[] = 'desativar';
             $acoes[] = 'reabrir';
