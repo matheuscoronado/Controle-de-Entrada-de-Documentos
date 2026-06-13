@@ -1,17 +1,20 @@
 <?php
 // app/Http/Controllers/ProcessoController.php
+// VERSÃO CORRIGIDA COM VALIDAÇÃO DE ANEXOS
 
 namespace App\Http\Controllers;
 
 use App\Models\Documento;
 use App\Models\ArquivoAnexo;
 use App\Models\TipoDocumento;
+use App\Models\DocumentoTipo;
 use App\Services\ProcessoService;
 use App\Exceptions\StatusTransitionException;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 
 class ProcessoController extends Controller
 {
@@ -59,71 +62,133 @@ class ProcessoController extends Controller
         return view('processos.create');
     }
 
+    /**
+     * Store a newly created process in storage.
+     */
     public function store(Request $request): RedirectResponse
     {
         Gate::authorize('create', Documento::class);
 
-        $data = $request->validate([
-            'tipo_documento_id'       => 'required|exists:tipo_documentos,id',
-            'remetente'               => 'required|string|max:255',
-            'descricao'               => 'nullable|string|max:2000',
-            'departamento_destino_id' => 'nullable|exists:departamentos,id',
-            'setor_destino'           => 'required|string|max:255',
-            'data_recebimento'        => 'required|date|before_or_equal:today',
-            'anexos'                  => 'nullable|array',
-            'anexos.*'                => 'file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
-            'tipos_anexo'             => 'nullable|array',
-            'tipos_anexo.*'           => 'nullable|string|in:rg,cpf,contrato,comprovante_residencia,comprovante_renda,certidao,laudo,outros',
-        ]);
+        try {
+            // Validação básica
+            $data = $request->validate([
+                'tipo_documento_id'       => 'required|exists:tipo_documentos,id',
+                'remetente'               => 'required|string|max:255',
+                'descricao'               => 'nullable|string|max:2000',
+                'departamento_destino_id' => 'nullable|exists:departamentos,id',
+                'setor_destino'           => 'required|string|max:255',
+                'data_recebimento'        => 'required|date|before_or_equal:today',
+                'anexos'                  => 'nullable|array',
+                'anexos.*'                => 'file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
+                'tipos_anexo'             => 'nullable|array',
+                // 🔧 CORREÇÃO: Aceita qualquer string (IDs dos documentos)
+                'tipos_anexo.*'           => 'nullable|string',
+            ]);
 
-        $documento = Documento::create([
-            'numero_protocolo'        => Documento::gerarProtocolo(),
-            'tipo_documento_id'       => $data['tipo_documento_id'],
-            'usuario_registro_id'     => auth()->id(),
-            'remetente'               => $data['remetente'],
-            'assunto'                 => null,
-            'descricao'               => $data['descricao'] ?? null,
-            'setor_destino'           => $data['setor_destino'],
-            'departamento_destino_id' => $data['departamento_destino_id'] ?? null,
-            'status'                  => 'novo',
-            'data_recebimento'        => $data['data_recebimento'],
-        ]);
+            Log::info('Iniciando criação do processo', $data);
 
-        \App\Models\HistoricoMovimentacao::create([
-            'documento_id' => $documento->id,
-            'usuario_id'   => auth()->id(),
-            'tipo'         => 'criacao',
-            'status_novo'  => 'novo',
-            'observacoes'  => 'Processo aberto no sistema.',
-        ]);
-
-        if ($request->hasFile('anexos')) {
-            foreach ($request->file('anexos') as $i => $file) {
-                $caminho = $file->store('anexos', 'public');
-                \App\Models\ArquivoAnexo::create([
-                    'documento_id'    => $documento->id,
-                    'usuario_id'      => auth()->id(),
-                    'tipo_anexo'      => $request->input("tipos_anexo.{$i}", 'outros'),
-                    'status_validacao'=> 'pendente',
-                    'nome_arquivo'    => $file->getClientOriginalName(),
-                    'caminho_arquivo' => $caminho,
-                    'tipo_mime'       => $file->getMimeType(),
-                    'tamanho_bytes'   => $file->getSize(),
-                ]);
+            // 🔧 MAPEAMENTO: Converte ID do documento para o tipo_anexo correto
+            $tiposAnexoMap = [];
+            if ($request->has('tipos_anexo')) {
+                foreach ($request->tipos_anexo as $index => $value) {
+                    if (!empty($value)) {
+                        // Tenta encontrar o documento pelo ID
+                        $documento = DocumentoTipo::find($value);
+                        if ($documento) {
+                            // Mapeia nome do documento para o tipo_anexo
+                            $mapa = [
+                                'RG' => 'rg',
+                                'CPF' => 'cpf',
+                                'CNH' => 'cnh',
+                                'Contrato' => 'contrato',
+                                'Comprovante de Residência' => 'comprovante_residencia',
+                                'Comprovante de Renda' => 'comprovante_renda',
+                                'Certidão' => 'certidao',
+                                'Laudo' => 'laudo',
+                            ];
+                            $tiposAnexoMap[$index] = $mapa[$documento->nome] ?? 'outros';
+                            Log::info("Mapeado documento '{$documento->nome}' para tipo '{$tiposAnexoMap[$index]}'");
+                        } else {
+                            $tiposAnexoMap[$index] = 'outros';
+                        }
+                    } else {
+                        $tiposAnexoMap[$index] = 'outros';
+                    }
+                }
             }
+
+            // Cria o processo
+            $documento = Documento::create([
+                'numero_protocolo'        => Documento::gerarProtocolo(),
+                'tipo_documento_id'       => $data['tipo_documento_id'],
+                'usuario_registro_id'     => auth()->id(),
+                'remetente'               => $data['remetente'],
+                'assunto'                 => null,
+                'descricao'               => $data['descricao'] ?? null,
+                'setor_destino'           => $data['setor_destino'],
+                'departamento_destino_id' => $data['departamento_destino_id'] ?? null,
+                'status'                  => 'novo',
+                'data_recebimento'        => $data['data_recebimento'],
+            ]);
+
+            Log::info('Processo criado', ['id' => $documento->id, 'protocolo' => $documento->numero_protocolo]);
+
+            // Registra histórico
+            \App\Models\HistoricoMovimentacao::create([
+                'documento_id' => $documento->id,
+                'usuario_id'   => auth()->id(),
+                'tipo'         => 'criacao',
+                'status_novo'  => 'novo',
+                'observacoes'  => 'Processo aberto no sistema.',
+            ]);
+
+            // Salva os anexos
+            if ($request->hasFile('anexos')) {
+                foreach ($request->file('anexos') as $i => $file) {
+                    $caminho = $file->store('anexos', 'public');
+                    $tipoAnexo = $tiposAnexoMap[$i] ?? 'outros';
+                    
+                    \App\Models\ArquivoAnexo::create([
+                        'documento_id'    => $documento->id,
+                        'usuario_id'      => auth()->id(),
+                        'tipo_anexo'      => $tipoAnexo,
+                        'status_validacao'=> 'pendente',
+                        'nome_arquivo'    => $file->getClientOriginalName(),
+                        'caminho_arquivo' => $caminho,
+                        'tipo_mime'       => $file->getMimeType(),
+                        'tamanho_bytes'   => $file->getSize(),
+                    ]);
+                    
+                    Log::info("Anexo salvo: {$file->getClientOriginalName()} como tipo '{$tipoAnexo}'");
+                }
+            }
+
+            // Registra log de auditoria
+            \App\Models\LogAuditoria::registrar('ABRIR_PROCESSO', 'documentos', $documento->id, [
+                'modulo'           => 'processos',
+                'status_novo'      => 'novo',
+                'descricao_legivel'=> "Processo {$documento->numero_protocolo} criado por ".auth()->user()->nome.'.',
+            ]);
+
+            Log::info('Processo finalizado com sucesso', ['protocolo' => $documento->numero_protocolo]);
+
+            return redirect()->route('documentos.show', $documento)
+                ->with('success', 'Processo aberto! Protocolo: '.$documento->numero_protocolo);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Erro de validação: ' . json_encode($e->errors()));
+            return back()->withErrors($e->errors())->withInput();
+            
+        } catch (\Exception $e) {
+            Log::error('Erro ao criar processo: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->with('error', 'Erro ao criar processo: ' . $e->getMessage())->withInput();
         }
-
-        \App\Models\LogAuditoria::registrar('ABRIR_PROCESSO', 'documentos', $documento->id, [
-            'modulo'           => 'processos',
-            'status_novo'      => 'novo',
-            'descricao_legivel'=> "Processo {$documento->numero_protocolo} criado por ".auth()->user()->nome.'.',
-        ]);
-
-        return redirect()->route('documentos.show', $documento)
-            ->with('success', 'Processo aberto! Protocolo: '.$documento->numero_protocolo);
     }
 
-    // ── JSON para Autocomplete ───────────────────────────────
+    // ── JSON para Autocomplete (CORRIGIDO) ───────────────────
 
     public function tiposJson(Request $request): JsonResponse
     {
@@ -134,52 +199,48 @@ class ProcessoController extends Controller
                 return $query->where('nome', 'like', '%' . $search . '%');
             })
             ->with('departamentoDestino:id,nome')
-            ->select(['id', 'nome', 'descricao', 'obrigatoriedade',
-                      'departamento_destino_id', 'cargo_responsavel'])
+            ->select(['id', 'nome', 'descricao', 'departamento_destino_id', 'cargos_responsaveis'])
             ->orderBy('nome')
             ->limit(10)
             ->get();
 
         return response()->json($tipos->map(fn($s) => [
-            'id'               => $s->id,
-            'nome'             => $s->nome,
-            'descricao'        => $s->descricao,
-            'obrigatorio'      => $s->obrigatoriedade === 'obrigatorio',
-            'setor_nome'       => $s->departamentoDestino?->nome ?? '',
-            'setor_id'         => $s->departamento_destino_id,
-            'cargo_responsavel'=> $s->cargo_responsavel,
+            'id'                    => $s->id,
+            'nome'                  => $s->nome,
+            'descricao'             => $s->descricao,
+            'setor_nome'            => $s->departamentoDestino?->nome ?? '',
+            'setor_id'              => $s->departamento_destino_id,
+            'cargos_responsaveis'   => $s->cargos_responsaveis ?? [],
         ]));
     }
 
     public function requisitosJson(int $id): JsonResponse
     {
-        // Carrega o serviço junto com setor de destino e documentos vinculados
-        // via relacionamento atual:
-        //   TipoDocumento → documentosTipo (pivot tipo_documento_documento_tipo) → DocumentoTipo
         $servico = TipoDocumento::with([
             'departamentoDestino:id,nome',
             'documentosTipo',
         ])->findOrFail($id);
 
-        // Lista de documentos exigidos pelo serviço conforme estrutura atual (DocumentoTipo)
-        $obrigatorios = $servico->documentosTipo
-            ->map(fn($doc) => [
-                'id'   => $doc->id,
-                'nome' => $doc->nome,
-                'tipo' => $doc->tipo, // 'obrigatorio' | 'opcional'
-            ])
-            ->values();
+        $documentosVinculados = $servico->documentosTipo->map(fn($doc) => [
+            'id'          => $doc->id,
+            'nome'        => $doc->nome,
+            'descricao'   => $doc->descricao,
+            'tipo'        => $doc->tipo,
+            'obrigatorio' => $doc->tipo === 'obrigatorio',
+        ])->values();
 
         return response()->json([
             'servico' => [
-                'id'          => $servico->id,
-                'nome'        => $servico->nome,
-                'setor'       => $servico->departamentoDestino?->nome,
-                'setor_id'    => $servico->departamento_destino_id,
-                'responsavel' => $servico->cargo_responsavel,
-                'obrigatorio' => $servico->obrigatoriedade === 'obrigatorio',
+                'id'                    => $servico->id,
+                'nome'                  => $servico->nome,
+                'descricao'             => $servico->descricao,
+                'setor'                 => $servico->departamentoDestino?->nome,
+                'setor_id'              => $servico->departamento_destino_id,
+                'cargos_responsaveis'   => $servico->cargos_responsaveis ?? [],
             ],
-            'documentos_obrigatorios' => $obrigatorios,
+            'documentos_obrigatorios' => $documentosVinculados->filter(fn($doc) => $doc['obrigatorio'])->values(),
+            'documentos_opcionais'    => $documentosVinculados->filter(fn($doc) => !$doc['obrigatorio'])->values(),
+            'todos_documentos'        => $documentosVinculados,
         ]);
     }
 
