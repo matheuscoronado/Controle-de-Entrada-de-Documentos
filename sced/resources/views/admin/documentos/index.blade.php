@@ -1,7 +1,10 @@
-{{-- resources/views/admin/documentos/index.blade.php --}}
+{{-- ============================================================
+     resources/views/admin/documentos/index.blade.php
+     LISTAGEM DE DOCUMENTOS - PADRÃO MODERNO
+     ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Cadastro de Documentos')
-@section('subtitle', 'Gerencie os tipos de documento disponíveis no sistema')
+@section('subtitle', 'Gerencie os tipos de documento do sistema')
 
 @section('topbar-actions')
     <a href="{{ route('documentos-tipo.create') }}" class="btn-primary-sced">
@@ -11,92 +14,209 @@
 
 @section('content')
 
-{{-- Cards de resumo --}}
-<div class="row g-3 mb-4">
-    <div class="col-sm-6 col-lg-3">
-        <div class="card-sced" style="padding:18px 20px;">
-            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--cinza-400);margin-bottom:6px;">Total</div>
-            <div style="font-size:28px;font-weight:700;color:var(--azul-claro);">{{ $documentos->count() }}</div>
-        </div>
-    </div>
-    <div class="col-sm-6 col-lg-3">
-        <div class="card-sced" style="padding:18px 20px;">
-            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--cinza-400);margin-bottom:6px;">Obrigatórios</div>
-            <div style="font-size:28px;font-weight:700;color:var(--vermelho);">{{ $documentos->where('tipo','obrigatorio')->count() }}</div>
-        </div>
-    </div>
-    <div class="col-sm-6 col-lg-3">
-        <div class="card-sced" style="padding:18px 20px;">
-            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--cinza-400);margin-bottom:6px;">Opcionais</div>
-            <div style="font-size:28px;font-weight:700;color:var(--ciano);">{{ $documentos->where('tipo','opcional')->count() }}</div>
-        </div>
-    </div>
-    <div class="col-sm-6 col-lg-3">
-        <div class="card-sced" style="padding:18px 20px;">
-            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--cinza-400);margin-bottom:6px;">Ativos</div>
-            <div style="font-size:28px;font-weight:700;color:var(--verde);">{{ $documentos->where('status','ativo')->count() }}</div>
-        </div>
-    </div>
-</div>
+<style>
+    .documentos-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .documentos-table thead th {
+        background: var(--cinza-100);
+        padding: 14px 16px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--cinza-500);
+        border-bottom: 1px solid var(--cinza-200);
+    }
+    .documentos-table tbody td {
+        padding: 16px;
+        border-bottom: 1px solid var(--cinza-100);
+        font-size: 13px;
+        vertical-align: middle;
+    }
+    .documentos-table tbody tr:hover {
+        background: var(--cinza-100);
+    }
+    
+    .tipo-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .tipo-obrigatorio {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    .tipo-opcional {
+        background: #f0f9ff;
+        color: #0369a1;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .status-ativo {
+        background: #f0fdf4;
+        color: #059669;
+    }
+    .status-inativo {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    
+    .btn-edit {
+        padding: 6px 14px;
+        background: transparent;
+        border: 1.5px solid var(--azul-claro);
+        color: var(--azul-claro);
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .btn-edit:hover {
+        background: var(--azul-claro);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .documento-card-mobile {
+        background: var(--branco);
+        border-radius: 12px;
+        border: 1px solid var(--cinza-200);
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+    .documento-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+    .documento-card-nome {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--azul-escuro);
+    }
+    .documento-card-body {
+        margin-bottom: 12px;
+        padding: 10px 0;
+        border-top: 1px solid var(--cinza-100);
+        border-bottom: 1px solid var(--cinza-100);
+    }
+    .documento-card-footer {
+        display: flex;
+        justify-content: flex-end;
+    }
+</style>
 
-<div class="card-sced">
-    <div style="overflow-x:auto;">
-        <table class="tabela-sced">
+<div class="card-sced d-none d-md-block">
+    <div class="table-responsive">
+        <table class="documentos-table">
             <thead>
                 <tr>
-                    <th>#</th>
+                    <th style="width: 60px;">ID</th>
                     <th>Nome do Documento</th>
                     <th>Descrição</th>
                     <th>Tipo</th>
                     <th>Status</th>
-                    <th style="text-align:center;">Ações</th>
+                    <th style="text-align: center;">Ações</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($documentos as $doc)
                 <tr>
-                    <td style="color:var(--cinza-400);font-size:12px;">{{ $doc->id }}</td>
-
+                    <td style="color: var(--cinza-400);">{{ $doc->id }}</td>
                     <td>
-                        <div style="font-weight:600;">📄 {{ $doc->nome }}</div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--azul-claro); display: flex; align-items: center; justify-content: center; color: white;">📄</div>
+                            <div>
+                                <div style="font-weight: 600;">{{ $doc->nome }}</div>
+                            </div>
+                        </div>
                     </td>
-
-                    <td style="font-size:13px;color:var(--cinza-500);max-width:280px;">
-                        {{ Str::limit($doc->descricao, 70) }}
+                    <td style="max-width: 300px;">
+                        <span style="font-size: 12px; color: var(--cinza-500);">{{ Str::limit($doc->descricao, 60) }}</span>
                     </td>
-
                     <td>
-                        @if($doc->tipo === 'obrigatorio')
-                            <span style="background:#fef2f2;color:#dc2626;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">● Obrigatório</span>
-                        @else
-                            <span style="background:#f0f9ff;color:#0369a1;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">○ Opcional</span>
-                        @endif
+                        <span class="tipo-badge {{ $doc->tipo == 'obrigatorio' ? 'tipo-obrigatorio' : 'tipo-opcional' }}">
+                            {{ $doc->tipo == 'obrigatorio' ? '🔴 Obrigatório' : '🔵 Opcional' }}
+                        </span>
                     </td>
-
                     <td>
-                        @if($doc->status === 'ativo')
-                            <span style="background:#f0fdf4;color:#059669;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">● Ativo</span>
-                        @else
-                            <span style="background:#fef2f2;color:#dc2626;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">● Inativo</span>
-                        @endif
+                        <span class="status-badge {{ $doc->status == 'ativo' ? 'status-ativo' : 'status-inativo' }}">
+                            ● {{ $doc->status == 'ativo' ? 'Ativo' : 'Inativo' }}
+                        </span>
                     </td>
-
-                    <td style="text-align:center;">
-                        <a href="{{ route('documentos-tipo.edit', $doc) }}" class="btn-outline-sced">✏️ Editar</a>
+                    <td style="text-align: center;">
+                        <a href="{{ route('documentos-tipo.edit', $doc) }}" class="btn-edit">✏️ Editar</a>
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" style="text-align:center;padding:48px;color:var(--cinza-400);">
-                        <div style="font-size:32px;margin-bottom:8px;">📄</div>
-                        Nenhum documento cadastrado ainda.
-                        <a href="{{ route('documentos-tipo.create') }}" style="color:var(--azul-claro);font-weight:600;">Criar o primeiro</a>
+                    <td colspan="6" class="text-center py-5">
+                        <div class="text-muted">
+                            <div class="fs-1 mb-2">📄</div>
+                            <p>Nenhum documento cadastrado ainda.</p>
+                            <a href="{{ route('documentos-tipo.create') }}" class="btn-primary-sced" style="display: inline-flex;">
+                                Criar o primeiro documento →
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
+</div>
+
+<div class="d-md-none">
+    @forelse($documentos as $doc)
+    <div class="documento-card-mobile">
+        <div class="documento-card-header">
+            <div class="documento-card-nome">📄 {{ $doc->nome }}</div>
+        </div>
+        <div class="documento-card-body">
+            <div style="margin-bottom: 8px;">
+                <span style="font-size: 11px; color: var(--cinza-400);">Descrição:</span>
+                <div style="font-size: 12px;">{{ Str::limit($doc->descricao, 80) }}</div>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <span class="tipo-badge {{ $doc->tipo == 'obrigatorio' ? 'tipo-obrigatorio' : 'tipo-opcional' }}">
+                    {{ $doc->tipo == 'obrigatorio' ? '🔴 Obrigatório' : '🔵 Opcional' }}
+                </span>
+                <span class="status-badge {{ $doc->status == 'ativo' ? 'status-ativo' : 'status-inativo' }}" style="margin-left: 8px;">
+                    ● {{ $doc->status == 'ativo' ? 'Ativo' : 'Inativo' }}
+                </span>
+            </div>
+        </div>
+        <div class="documento-card-footer">
+            <a href="{{ route('documentos-tipo.edit', $doc) }}" class="btn-edit">✏️ Editar</a>
+        </div>
+    </div>
+    @empty
+    <div class="card-sced text-center py-5">
+        <div class="text-muted">
+            <div class="fs-1 mb-2">📄</div>
+            <p>Nenhum documento cadastrado ainda.</p>
+            <a href="{{ route('documentos-tipo.create') }}" class="btn-primary-sced">Criar o primeiro documento →</a>
+        </div>
+    </div>
+    @endforelse
 </div>
 
 @endsection
