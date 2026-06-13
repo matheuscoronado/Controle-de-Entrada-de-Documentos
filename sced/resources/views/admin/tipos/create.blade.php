@@ -1,4 +1,7 @@
-{{-- resources/views/admin/tipos/create.blade.php — Novo Serviço --}}
+{{-- ============================================================
+     resources/views/admin/tipos/create.blade.php
+     NOVO SERVIÇO - Com vinculação de documentos
+     ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Novo Serviço')
 @section('subtitle', 'Cadastre um serviço com seus documentos e responsáveis')
@@ -40,12 +43,13 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════════════
-         SEÇÃO 2: Documentos Necessários
+         SEÇÃO 2: Documentos Vinculados (NOVO)
     ═══════════════════════════════════════════════════════ --}}
     <div class="card-sced mb-4">
-        <div class="secao-titulo">📄 Tipos de Documentos Necessários</div>
+        <div class="secao-titulo">📄 Documentos Vinculados</div>
         <div style="font-size:13px;color:var(--cinza-400);margin-bottom:16px;">
-            Selecione os documentos que serão exibidos ao solicitante ao abrir um processo deste serviço.
+            Selecione os documentos que serão exigidos ao abrir um processo deste serviço.
+            Os documentos com <span class="badge-obrig-peq">Obrigatório</span> serão exigidos, os <span class="badge-opc-peq">Opcionais</span> são complementares.
         </div>
 
         @if($documentosDisponiveis->isEmpty())
@@ -84,7 +88,7 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════════════
-         SEÇÃO 3: Destino e Responsáveis
+         SEÇÃO 3: Destino e Cargos Responsáveis
     ═══════════════════════════════════════════════════════ --}}
     <div class="card-sced mb-4">
         <div class="secao-titulo">🏢 Setor Destino e Cargos Responsáveis</div>
@@ -165,6 +169,24 @@
 }
 .obrig { color: var(--vermelho); }
 .msg-erro { color: var(--vermelho); font-size: 12px; margin-top: 4px; }
+
+/* Badges pequenos para legenda */
+.badge-obrig-peq {
+    background: #fef2f2;
+    color: #dc2626;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+}
+.badge-opc-peq {
+    background: #f0f9ff;
+    color: #0369a1;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+}
 
 /* Grid de documentos */
 .grid-docs {
