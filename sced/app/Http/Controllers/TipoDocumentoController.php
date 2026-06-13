@@ -18,7 +18,7 @@ class TipoDocumentoController extends Controller
             ->orderBy('nome')
             ->get();
 
-        return view('admin.tipos.index', compact('tipos'));
+        return view('admin.tipos.index', compact('tipos'));  // ← Está passando 'tipos'
     }
 
     public function create()
@@ -38,7 +38,7 @@ class TipoDocumentoController extends Controller
             'cargos_responsaveis'     => 'nullable|array',
             'cargos_responsaveis.*'   => 'in:N1,N2,N3',
             'documentos_necessarios'  => 'nullable|array',
-            'documentos_necessarios.*'=> 'exists:documento_tipos,id',
+            'documentos_necessarios.*' => 'exists:documento_tipos,id',
         ]);
 
         $tipo = TipoDocumento::create([
@@ -65,7 +65,10 @@ class TipoDocumentoController extends Controller
         $documentosSelecionados = $tipo->documentosTipo->pluck('id')->toArray();
 
         return view('admin.tipos.edit', compact(
-            'tipo', 'departamentos', 'documentosDisponiveis', 'documentosSelecionados'
+            'tipo',
+            'departamentos',
+            'documentosDisponiveis',
+            'documentosSelecionados'
         ));
     }
 
@@ -78,7 +81,7 @@ class TipoDocumentoController extends Controller
             'cargos_responsaveis'     => 'nullable|array',
             'cargos_responsaveis.*'   => 'in:N1,N2,N3',
             'documentos_necessarios'  => 'nullable|array',
-            'documentos_necessarios.*'=> 'exists:documento_tipos,id',
+            'documentos_necessarios.*' => 'exists:documento_tipos,id',
             'status'                  => 'required|in:ativo,inativo',
         ]);
 
