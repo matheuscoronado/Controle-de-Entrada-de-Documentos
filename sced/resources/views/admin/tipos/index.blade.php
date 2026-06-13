@@ -1,6 +1,6 @@
 {{-- ============================================================
      resources/views/admin/tipos/index.blade.php
-     LISTAGEM DE SERVIÇOS - CADASTRO DE SERVIÇO
+     LISTAGEM DE SERVIÇOS - CORRIGIDA
      ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Cadastro de Serviço')
@@ -15,7 +15,6 @@
 @section('content')
 
 <style>
-    /* Cards de estatísticas */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -45,7 +44,6 @@
         margin-top: 6px;
     }
     
-    /* Tabela de serviços */
     .servicos-table {
         width: 100%;
         border-collapse: collapse;
@@ -70,7 +68,6 @@
         background: var(--cinza-100);
     }
     
-    /* Badges de cargos */
     .cargo-badge {
         display: inline-flex;
         align-items: center;
@@ -85,7 +82,6 @@
     .cargo-badge.N2 { background: #fef3c7; color: #92400e; }
     .cargo-badge.N3 { background: #d1fae5; color: #065f46; }
     
-    /* Documentos badges */
     .doc-badge {
         display: inline-flex;
         align-items: center;
@@ -107,7 +103,6 @@
         color: #0369a1;
     }
     
-    /* Badge de status */
     .status-badge {
         display: inline-flex;
         align-items: center;
@@ -126,7 +121,6 @@
         color: #dc2626;
     }
     
-    /* Ações */
     .btn-edit {
         padding: 6px 14px;
         background: transparent;
@@ -146,7 +140,6 @@
         text-decoration: none;
     }
     
-    /* Card mobile */
     .servico-card-mobile {
         background: var(--branco);
         border-radius: 12px;
@@ -167,9 +160,6 @@
         font-size: 15px;
         color: var(--azul-escuro);
     }
-    .servico-card-body {
-        margin-bottom: 12px;
-    }
     .servico-card-descricao {
         font-size: 12px;
         color: var(--cinza-500);
@@ -186,19 +176,19 @@
 {{-- Cards de estatísticas --}}
 <div class="stats-grid">
     <div class="stat-card-servico">
-        <div class="stat-value">{{ $servicos->count() }}</div>
+        <div class="stat-value">{{ $tipos->count() }}</div>
         <div class="stat-label">Total de Serviços</div>
     </div>
     <div class="stat-card-servico">
-        <div class="stat-value">{{ $servicos->where('status', 'ativo')->count() }}</div>
+        <div class="stat-value">{{ $tipos->where('status', 'ativo')->count() }}</div>
         <div class="stat-label">Ativos</div>
     </div>
     <div class="stat-card-servico">
-        <div class="stat-value">{{ $servicos->filter(fn($s) => count($s->cargos_responsaveis ?? []) > 0)->count() }}</div>
+        <div class="stat-value">{{ $tipos->filter(fn($s) => count($s->cargos_responsaveis ?? []) > 0)->count() }}</div>
         <div class="stat-label">Com Cargos Definidos</div>
     </div>
     <div class="stat-card-servico">
-        <div class="stat-value">{{ $servicos->filter(fn($s) => $s->documentosTipo->count() > 0)->count() }}</div>
+        <div class="stat-value">{{ $tipos->filter(fn($s) => $s->documentosTipo->count() > 0)->count() }}</div>
         <div class="stat-label">Com Documentos Vinculados</div>
     </div>
 </div>
@@ -219,7 +209,7 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($servicos as $servico)
+                @forelse($tipos as $servico)
                 <tr>
                     <td style="color: var(--cinza-400); font-size: 12px;">{{ $servico->id }}</td>
                     <td>
@@ -295,7 +285,7 @@
 
 {{-- CARDS MOBILE --}}
 <div class="d-md-none">
-    @forelse($servicos as $servico)
+    @forelse($tipos as $servico)
     <div class="servico-card-mobile">
         <div class="servico-card-header">
             <div class="servico-card-nome">🏷️ {{ $servico->nome }}</div>
