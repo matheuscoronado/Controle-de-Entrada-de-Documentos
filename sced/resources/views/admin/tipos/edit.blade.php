@@ -1,4 +1,7 @@
-{{-- resources/views/admin/tipos/edit.blade.php — Editar Serviço --}}
+{{-- ============================================================
+     resources/views/admin/tipos/edit.blade.php
+     EDITAR SERVIÇO - Com vinculação de documentos
+     ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Editar Serviço: ' . $tipo->nome)
 @section('subtitle', 'Altere os dados, documentos e responsáveis deste serviço')
@@ -36,9 +39,9 @@
                     <option value="ativo"   {{ old('status', $tipo->status) === 'ativo'   ? 'selected' : '' }}>● Ativo</option>
                     <option value="inativo" {{ old('status', $tipo->status) === 'inativo' ? 'selected' : '' }}>● Inativo</option>
                 </select>
-                @if($tipo->documentos_count > 0)
+                @if($tipo->documentos()->count() > 0)
                     <div style="font-size:12px;color:var(--amarelo);margin-top:4px;">
-                        ⚠️ {{ $tipo->documentos_count }} processo(s) vinculado(s). Inativar não é possível.
+                        ⚠️ Este serviço possui {{ $tipo->documentos()->count() }} processo(s) vinculado(s). Inativar não é possível se houver processos.
                     </div>
                 @endif
             </div>
@@ -51,12 +54,12 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════════════
-         SEÇÃO 2: Documentos Necessários
+         SEÇÃO 2: Documentos Vinculados
     ═══════════════════════════════════════════════════════ --}}
     <div class="card-sced mb-4">
-        <div class="secao-titulo">📄 Tipos de Documentos Necessários</div>
+        <div class="secao-titulo">📄 Documentos Vinculados</div>
         <div style="font-size:13px;color:var(--cinza-400);margin-bottom:16px;">
-            Selecione os documentos que serão exibidos ao solicitante ao abrir um processo deste serviço.
+            Selecione os documentos que serão exigidos ao abrir um processo deste serviço.
         </div>
 
         @if($documentosDisponiveis->isEmpty())
@@ -95,7 +98,7 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════════════
-         SEÇÃO 3: Destino e Responsáveis
+         SEÇÃO 3: Destino e Cargos Responsáveis
     ═══════════════════════════════════════════════════════ --}}
     <div class="card-sced mb-4">
         <div class="secao-titulo">🏢 Setor Destino e Cargos Responsáveis</div>
@@ -105,7 +108,7 @@
             <div class="col-md-6">
                 <label class="form-label-sced">Setor Destino</label>
                 <select name="departamento_destino_id" class="form-input-sced">
-                    <option value="">— Nenhum —</option>
+                    <option value="">— Selecione —</option>
                     @foreach($departamentos as $dep)
                         <option value="{{ $dep->id }}"
                                 {{ old('departamento_destino_id', $tipo->departamento_destino_id) == $dep->id ? 'selected' : '' }}>
