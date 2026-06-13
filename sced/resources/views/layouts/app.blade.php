@@ -1,6 +1,6 @@
 {{-- ============================================================
      resources/views/layouts/app.blade.php
-     MENU LATERAL - Serviços movido para Administração
+     MENU LATERAL - SEM CONTADOR NO PROCESSOS
      ============================================================ --}}
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -33,13 +33,10 @@
             <span class="nav-icon">🏠</span> Dashboard
         </a>
 
+        {{-- Processos - SEM CONTADOR --}}
         <a href="{{ route('documentos.index') }}"
            class="sidebar-link {{ request()->routeIs('documentos.index','documentos.show') ? 'active' : '' }}">
             <span class="nav-icon">📂</span> Processos
-            @php $pendentes = \App\Models\Documento::where('status','novo')->whereNull('atribuido_a_id')->count(); @endphp
-            @if($pendentes > 0)
-                <span class="nav-badge">{{ $pendentes }}</span>
-            @endif
         </a>
 
         <a href="{{ route('documentos.create') }}"
@@ -47,14 +44,24 @@
             <span class="nav-icon">➕</span> Novo Processo
         </a>
 
-        {{-- ADMIN ──────────────────────────────────────────── --}}
-        @if(auth()->user()->isAdmin())
+        {{-- ADMIN / N3 (Supervisão) --}}
+        @php $user = auth()->user(); @endphp
+        @if($user->isAdmin() || $user->isN3())
+        <div class="nav-section-label">Supervisão</div>
+
+        <a href="{{ route('logs.index') }}"
+           class="sidebar-link {{ request()->routeIs('logs.*') ? 'active' : '' }}">
+            <span class="nav-icon">📋</span> Logs / Auditoria
+        </a>
+        @endif
+
+        {{-- ADMIN (Administração) --}}
+        @if($user->isAdmin())
         <div class="nav-section-label">Administração</div>
 
-        {{-- ⭐ SERVIÇOS movido para ADMINISTRAÇÃO ⭐ --}}
         <a href="{{ route('tipos.index') }}"
            class="sidebar-link {{ request()->routeIs('tipos.*') ? 'active' : '' }}">
-            <span class="nav-icon">🏷️</span> Serviços
+            <span class="nav-icon">🏷️</span> Cadastro de Serviço
         </a>
 
         <a href="{{ route('documentos-tipo.index') }}"
@@ -72,24 +79,9 @@
             <span class="nav-icon">🏢</span> Departamentos
         </a>
 
-        <a href="{{ route('logs.index') }}"
-           class="sidebar-link {{ request()->routeIs('logs.*') ? 'active' : '' }}">
-            <span class="nav-icon">📋</span> Logs / Auditoria
-        </a>
-
         <a href="{{ route('relatorios.index') }}"
            class="sidebar-link {{ request()->routeIs('relatorios.*') ? 'active' : '' }}">
             <span class="nav-icon">📊</span> Relatórios
-        </a>
-        @endif
-
-        {{-- N3 (supervisor) ─────────────────────────────── --}}
-        @if(auth()->user()->isN3() && !auth()->user()->isAdmin())
-        <div class="nav-section-label">Supervisão</div>
-
-        <a href="{{ route('logs.index') }}"
-           class="sidebar-link {{ request()->routeIs('logs.*') ? 'active' : '' }}">
-            <span class="nav-icon">📋</span> Logs / Auditoria
         </a>
         @endif
 
