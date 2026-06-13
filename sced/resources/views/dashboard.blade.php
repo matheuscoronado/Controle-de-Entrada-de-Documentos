@@ -1,539 +1,529 @@
 {{-- ============================================================
-     resources/views/dashboard.blade.php — Fase 2 Visual
-     Dashboard operacional:
-     • KPIs modernos com cards refinados
-     • Gráfico volume diário e rosca de status
-     • Barras por setor e responsável
-     • Fila de atribuição e meus processos
-     • Layout 4-col desktop / 2-col tablet / empilhado mobile
+     resources/views/dashboard.blade.php
+     DASHBOARD - COM DADOS ESPECÍFICOS POR USUÁRIO
      ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Dashboard')
-@section('subtitle', 'Visão operacional em tempo real')
-
-@section('topbar-actions')
-    <a href="{{ route('documentos.create') }}" class="btn-primary-sced">
-        ➕ Novo Processo
-    </a>
-@endsection
+@section('subtitle', 'Visão geral do sistema')
 
 @section('content')
 
-{{-- ══ LINHA 1: KPIs ══════════════════════════════════════════ --}}
-@php
-    $kpiConfig = [
-        ['key'=>'total',      'icone'=>'📂', 'cor'=>'azul',    'label'=>'Total de Processos',  'href'=>null],
-        ['key'=>'novo',       'icone'=>'🆕', 'cor'=>'ciano',   'label'=>'Novos (aguardando)',   'href'=>route('documentos.index').'?status=novo'],
-        ['key'=>'em_analise', 'icone'=>'🔍', 'cor'=>'amarelo', 'label'=>'Em Análise',           'href'=>route('documentos.index').'?status=em_analise'],
-        ['key'=>'pendente',   'icone'=>'⏳', 'cor'=>'vermelho','label'=>'Pendentes',            'href'=>route('documentos.index').'?status=pendente'],
-        ['key'=>'finalizado', 'icone'=>'✅', 'cor'=>'verde',   'label'=>'Finalizados',          'href'=>route('documentos.index').'?status=finalizado'],
-    ];
-@endphp
-<div class="dash-kpi-row" id="kpiRow">
-    @foreach($kpiConfig as $k)
-    <div class="dash-kpi-col">
-        @if($k['href'])
-        <a href="{{ $k['href'] }}" class="kpi-card --clicavel dash-kpi-link" id="kpi-{{ $k['key'] }}">
-        @else
-        <div class="kpi-card" id="kpi-{{ $k['key'] }}">
-        @endif
-            <div class="kpi-icon {{ $k['cor'] }}">{{ $k['icone'] }}</div>
-            <div class="dash-kpi-body">
-                <div class="kpi-valor" id="kv-{{ $k['key'] }}">{{ $kpis[$k['key']] ?? 0 }}</div>
-                <div class="kpi-label">{{ $k['label'] }}</div>
+<style>
+    /* Cards modernos */
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 20px;
+        margin-bottom: 32px;
+    }
+    .stat-card {
+        background: var(--branco);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: var(--sombra-card);
+        border: 1px solid var(--cinza-200);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--sombra-hover);
+    }
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+    }
+    .stat-card.primary::before { background: var(--azul-claro); }
+    .stat-card.info::before { background: var(--ciano); }
+    .stat-card.warning::before { background: var(--amarelo); }
+    .stat-card.danger::before { background: var(--vermelho); }
+    .stat-card.success::before { background: var(--verde); }
+    
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+    .stat-icon.primary { background: rgba(37,99,235,.1); color: var(--azul-claro); }
+    .stat-icon.info { background: rgba(6,182,212,.1); color: var(--ciano); }
+    .stat-icon.warning { background: rgba(245,158,11,.1); color: var(--amarelo); }
+    .stat-icon.danger { background: rgba(239,68,68,.1); color: var(--vermelho); }
+    .stat-icon.success { background: rgba(16,185,129,.1); color: var(--verde); }
+    
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--cinza-800);
+        line-height: 1.2;
+    }
+    .stat-label {
+        font-size: 12px;
+        color: var(--cinza-400);
+        margin-top: 6px;
+    }
+    
+    /* Gráficos lado a lado */
+    .charts-row {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+    .chart-card {
+        background: var(--branco);
+        border-radius: 20px;
+        border: 1px solid var(--cinza-200);
+        padding: 20px;
+        box-shadow: var(--sombra-card);
+        transition: all 0.3s ease;
+    }
+    .chart-card:hover {
+        box-shadow: var(--sombra-hover);
+    }
+    .chart-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--cinza-600);
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--cinza-200);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-align: center;
+    }
+    
+    /* Gráfico de rosca */
+    .doughnut-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .doughnut-wrapper {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        margin: 0 auto 20px;
+    }
+    .doughnut-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+    .doughnut-center .total {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--azul-escuro);
+    }
+    .doughnut-center .label {
+        font-size: 10px;
+        color: var(--cinza-400);
+    }
+    
+    /* Legenda */
+    .legend-top {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--cinza-100);
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--cinza-600);
+    }
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+    }
+    .legend-color.novo { background: #2563eb; }
+    .legend-color.em_analise { background: #d97706; }
+    .legend-color.pendente { background: #92400e; }
+    .legend-color.finalizado { background: #059669; }
+    .legend-color.desativado { background: #64748b; }
+    
+    /* Tabela de processos recentes */
+    .recent-card {
+        background: var(--branco);
+        border-radius: 20px;
+        border: 1px solid var(--cinza-200);
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    .recent-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--cinza-200);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .recent-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--cinza-600);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    /* Badge de status */
+    .badge-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .badge-status::before {
+        content: "●";
+        font-size: 7px;
+    }
+    .badge-novo { background: #eff6ff; color: #2563eb; }
+    .badge-em_analise { background: #fffbeb; color: #d97706; }
+    .badge-pendente { background: #fef3c7; color: #92400e; }
+    .badge-finalizado { background: #f0fdf4; color: #059669; }
+    .badge-desativado { background: #f1f5f9; color: #64748b; }
+    
+    /* Tabela responsiva */
+    .table-responsive {
+        overflow-x: auto;
+    }
+    .recent-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .recent-table thead th {
+        background: var(--cinza-100);
+        padding: 12px 16px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--cinza-500);
+        border-bottom: 1px solid var(--cinza-200);
+    }
+    .recent-table tbody td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--cinza-100);
+        font-size: 13px;
+        vertical-align: middle;
+    }
+    .recent-table tbody tr:hover {
+        background: var(--cinza-100);
+    }
+    
+    .protocolo-codigo {
+        font-family: monospace;
+        background: var(--cinza-100);
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .btn-ver {
+        padding: 5px 14px;
+        background: transparent;
+        border: 1.5px solid var(--azul-claro);
+        color: var(--azul-claro);
+        border-radius: 8px;
+        font-size: 12px;
+        transition: all 0.2s;
+        display: inline-block;
+        text-decoration: none;
+    }
+    .btn-ver:hover {
+        background: var(--azul-claro);
+        color: white;
+        text-decoration: none;
+    }
+    
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .charts-row {
+            grid-template-columns: 1fr;
+        }
+        .dashboard-stats {
+            gap: 12px;
+        }
+        .stat-card {
+            padding: 14px;
+        }
+        .stat-value {
+            font-size: 24px;
+        }
+        .legend-top {
+            gap: 10px;
+        }
+        .legend-item {
+            font-size: 9px;
+        }
+    }
+</style>
+
+{{-- Cards de estatísticas (específicos por usuário) --}}
+<div class="dashboard-stats">
+    <div class="stat-card primary">
+        <div class="stat-header">
+            <div class="stat-icon primary">📊</div>
+        </div>
+        <div class="stat-value">{{ $kpis['total'] ?? 0 }}</div>
+        <div class="stat-label">Meus Processos</div>
+    </div>
+    
+    <div class="stat-card info">
+        <div class="stat-header">
+            <div class="stat-icon info">🆕</div>
+        </div>
+        <div class="stat-value">{{ $kpis['novo'] ?? 0 }}</div>
+        <div class="stat-label">Processos Novos</div>
+    </div>
+    
+    <div class="stat-card warning">
+        <div class="stat-header">
+            <div class="stat-icon warning">⚙️</div>
+        </div>
+        <div class="stat-value">{{ $kpis['em_analise'] ?? 0 }}</div>
+        <div class="stat-label">Em Análise</div>
+    </div>
+    
+    <div class="stat-card danger">
+        <div class="stat-header">
+            <div class="stat-icon danger">⏳</div>
+        </div>
+        <div class="stat-value">{{ $kpis['pendente'] ?? 0 }}</div>
+        <div class="stat-label">Pendentes</div>
+    </div>
+    
+    <div class="stat-card success">
+        <div class="stat-header">
+            <div class="stat-icon success">✅</div>
+        </div>
+        <div class="stat-value">{{ $kpis['finalizado'] ?? 0 }}</div>
+        <div class="stat-label">Finalizados</div>
+    </div>
+</div>
+
+{{-- Gráficos lado a lado --}}
+<div class="charts-row">
+    {{-- Gráfico de Rosca --}}
+    <div class="chart-card">
+        <div class="chart-title">
+            🍩 Processos por Status
+        </div>
+        <div class="legend-top">
+            <div class="legend-item">
+                <div class="legend-color novo"></div>
+                <span>Novos ({{ $kpis['novo'] ?? 0 }})</span>
             </div>
-        @if($k['href'])
+            <div class="legend-item">
+                <div class="legend-color em_analise"></div>
+                <span>Em Análise ({{ $kpis['em_analise'] ?? 0 }})</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color pendente"></div>
+                <span>Pendentes ({{ $kpis['pendente'] ?? 0 }})</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color finalizado"></div>
+                <span>Finalizados ({{ $kpis['finalizado'] ?? 0 }})</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color desativado"></div>
+                <span>Desativados ({{ $kpis['desativado'] ?? 0 }})</span>
+            </div>
+        </div>
+        <div class="doughnut-container">
+            <div class="doughnut-wrapper">
+                <canvas id="statusChart" width="200" height="200"></canvas>
+                <div class="doughnut-center">
+                    <div class="total">{{ $kpis['total'] ?? 0 }}</div>
+                    <div class="label">Total</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Gráfico de Barras (Mensal) --}}
+    <div class="chart-card">
+        <div class="chart-title">
+            📊 Processos por Mês
+        </div>
+        <canvas id="monthlyChart" style="width:100%; height:280px;"></canvas>
+    </div>
+</div>
+
+{{-- Processos Recentes --}}
+<div class="recent-card">
+    <div class="recent-header">
+        <div class="recent-title">
+            🕐 Processos Recentes
+        </div>
+        <a href="{{ route('documentos.index') }}" class="btn-outline-sced" style="padding: 6px 14px; font-size: 12px;">
+            Ver todos →
         </a>
-        @else
-        </div>
-        @endif
     </div>
-    @endforeach
-</div>
-
-{{-- ══ LINHA 2: Gráficos ══════════════════════════════════════ --}}
-<div class="row g-3 mb-3">
-
-    {{-- Gráfico de barras: volume diário --}}
-    <div class="col-12 col-lg-8">
-        <div class="card-sced card-body-sced dash-chart-card">
-            <div class="dash-chart-header">
-                <strong class="dash-card-title">📈 Volume Diário (14 dias)</strong>
-                <span id="indLive" class="dash-live-badge">Atualizando...</span>
-            </div>
-            <canvas id="chartVolume" style="width:100%;height:180px;"></canvas>
-        </div>
-    </div>
-
-    {{-- Gráfico de rosca: distribuição por status --}}
-    <div class="col-12 col-lg-4">
-        <div class="card-sced card-body-sced dash-chart-card">
-            <strong class="dash-card-title mb-3">🍩 Por Status</strong>
-            <div class="dash-rosca-wrap">
-                <canvas id="chartStatus" style="max-width:120px;max-height:120px;flex-shrink:0;"></canvas>
-                <div id="legendStatus" class="dash-rosca-legend"></div>
-            </div>
-        </div>
-    </div>
-
-</div>
-
-{{-- ══ LINHA 3: Setor + Responsável ══════════════════════════ --}}
-<div class="row g-3 mb-3">
-
-    <div class="col-12 col-md-6">
-        <div class="card-sced card-body-sced">
-            <strong class="dash-card-title mb-3">🏢 Por Setor</strong>
-            <div id="barrasSetor"></div>
-        </div>
-    </div>
-
-    <div class="col-12 col-md-6">
-        <div class="card-sced card-body-sced">
-            <strong class="dash-card-title mb-3">👤 Por Responsável (ativos)</strong>
-            <div id="barrasResponsavel"></div>
-        </div>
-    </div>
-
-</div>
-
-{{-- ══ LINHA 4: Fila de Atribuição + Meus Processos ══════════ --}}
-<div class="row g-3">
-
-    {{-- Fila de atribuição --}}
-    <div class="col-12 col-lg-7">
-        <div class="card-sced dash-fila-card">
-            <div class="dash-fila-header">
-                <div>
-                    <strong class="dash-card-title mb-0">🎯 Fila de Atribuição</strong>
-                    <div class="dash-fila-sub">Processos novos aguardando responsável</div>
-                </div>
-                <span id="countFila" class="dash-fila-counter">
-                    {{ $filaAtribuicao->count() }}
-                </span>
-            </div>
-
-            <div style="overflow-x:auto;">
-                <table class="tabela-sced" id="tabelaFila">
-                    <thead>
-                        <tr>
-                            <th>Protocolo</th>
-                            <th>Serviço</th>
-                            <th>Solicitante</th>
-                            <th>Aguardando</th>
-                            <th style="text-align:center;">Atribuir</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($filaAtribuicao as $doc)
-                        <tr id="fila-row-{{ $doc->id }}">
-                            <td><span class="protocolo-codigo">{{ $doc->numero_protocolo }}</span></td>
-                            <td class="dash-td-truncate">{{ $doc->tipoDocumento->nome }}</td>
-                            <td class="dash-td-truncate">{{ $doc->remetente }}</td>
-                            <td class="dash-td-age">{{ $doc->created_at->diffForHumans() }}</td>
-                            <td style="text-align:center;">
-                                <button type="button"
-                                        class="btn-primary-sced dash-btn-atribuir"
-                                        onclick="abrirModalAtribuir({{ $doc->id }}, '{{ $doc->numero_protocolo }}')">
-                                    Atribuir →
-                                </button>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="5" class="dash-empty-cell">
-                                <div style="font-size:24px;margin-bottom:6px;">🎉</div>
-                                Nenhum processo na fila!
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            @if($filaAtribuicao->count() > 0)
-            <div class="dash-fila-footer">
-                <a href="{{ route('documentos.index') }}?status=novo" class="btn-outline-sced" style="font-size:12px;">
-                    Ver todos →
-                </a>
-            </div>
-            @endif
-        </div>
-    </div>
-
-    {{-- Meus processos --}}
-    <div class="col-12 col-lg-5">
-        <div class="card-sced dash-meus-card">
-            <div class="dash-meus-header">
-                <strong class="dash-card-title mb-0">📌 Meus Processos</strong>
-                <a href="{{ route('documentos.index') }}" class="btn-outline-sced" style="font-size:11px;padding:4px 10px;">
-                    Ver todos
-                </a>
-            </div>
-
-            <div>
-                @forelse($meusProcessos as $doc)
-                <a href="{{ route('documentos.show', $doc) }}" class="dash-meu-item">
-                    @php $cores = \App\Models\Documento::STATUS_CORES[$doc->status] ?? []; @endphp
-                    <div class="dash-meu-barra"
-                         style="background:{{ $cores['color'] ?? '#94a3b8' }};"></div>
-                    <div class="dash-meu-corpo">
-                        <div class="dash-meu-servico">{{ $doc->tipoDocumento->nome }}</div>
-                        <div class="dash-meu-meta">
-                            <span class="protocolo-codigo">{{ $doc->numero_protocolo }}</span>
-                            <span>{{ $doc->atribuido_em ? $doc->atribuido_em->diffForHumans() : '—' }}</span>
-                        </div>
-                    </div>
-                    <span class="dash-meu-status"
-                          style="background:{{ $cores['bg'] ?? '#f1f5f9' }};color:{{ $cores['color'] ?? '#64748b' }};">
-                        {{ \App\Models\Documento::STATUS[$doc->status] ?? $doc->status }}
-                    </span>
-                </a>
+    <div class="table-responsive">
+        <table class="recent-table">
+            <thead>
+                <tr>
+                    <th>Protocolo</th>
+                    <th>Serviço</th>
+                    <th>Solicitante</th>
+                    <th>Status</th>
+                    <th>Abertura</th>
+                    <th class="text-center">Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($processosRecentes ?? [] as $processo)
+                <tr>
+                    <td>
+                        <span class="protocolo-codigo">{{ $processo->numero_protocolo }}</span>
+                    </td>
+                    <td>{{ $processo->tipoDocumento->nome ?? '-' }}</td>
+                    <td>{{ $processo->remetente }}</td>
+                    <td>
+                        <span class="badge-status badge-{{ $processo->status }}">
+                            {{ $processo->label_status }}
+                        </span>
+                    </td>
+                    <td>{{ $processo->created_at->format('d/m/Y H:i') }}</td>
+                    <td class="text-center">
+                        <a href="{{ route('documentos.show', $processo) }}" class="btn-ver">
+                            Ver →
+                        </a>
+                    </td>
+                </tr>
                 @empty
-                <div class="dash-meus-vazio">
-                    <div style="font-size:28px;margin-bottom:8px;">📭</div>
-                    <div style="font-size:13px;">Nenhum processo atribuído a você.</div>
-                </div>
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <div class="text-muted">
+                            <div class="fs-1 mb-2">📭</div>
+                            Nenhum processo encontrado
+                        </div>
+                    </td>
+                </tr>
                 @endforelse
-            </div>
-        </div>
-    </div>
-
-</div>
-
-{{-- ══ MODAL DE ATRIBUIÇÃO ══════════════════════════════════ --}}
-<div class="modal-overlay" id="modalOverlay" style="display:none;">
-    <div class="modal-sced">
-        <div class="modal-header">
-            <div>
-                <div style="font-size:16px;font-weight:700;color:var(--azul-escuro);">👤 Atribuir Processo</div>
-                <div style="font-size:12px;color:var(--cinza-400);margin-top:2px;" id="modalProtocolo">—</div>
-            </div>
-            <button onclick="fecharModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--cinza-400);">✕</button>
-        </div>
-
-        <div style="padding:20px;">
-            <div class="mb-3">
-                <label class="form-label-sced">Responsável <span style="color:var(--vermelho)">*</span></label>
-                <select id="selectAnalista" class="form-input-sced">
-                    <option value="">Carregando analistas...</option>
-                </select>
-                <div style="font-size:11px;color:var(--cinza-400);margin-top:4px;" id="cargaAnalista"></div>
-            </div>
-
-            <div id="modalError" class="alert-sced alert-error" style="display:none;"></div>
-
-            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
-                <button onclick="fecharModal()" class="btn-secondary-sced">Cancelar</button>
-                <button onclick="confirmarAtribuicao()" class="btn-primary-sced" id="btnConfirmar">
-                    ✅ Confirmar Atribuição
-                </button>
-            </div>
-        </div>
+            </tbody>
+        </table>
     </div>
 </div>
 
 @endsection
-
-@push('styles')
-<style>
-/* Modal */
-.modal-overlay {
-    position: fixed; inset: 0; z-index: 500;
-    background: rgba(15,39,68,.45);
-    display: flex; align-items: center; justify-content: center;
-    animation: fadeIn .18s ease;
-}
-.modal-sced {
-    background: var(--branco); border-radius: var(--radius);
-    width: 100%; max-width: 440px;
-    box-shadow: 0 24px 64px rgba(0,0,0,.2);
-    animation: scaleUp .2s ease;
-}
-.modal-header {
-    display: flex; align-items: flex-start; justify-content: space-between;
-    padding: 20px 20px 0;
-}
-@keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
-@keyframes scaleUp { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:none; } }
-
-/* Barras horizontais */
-.barra-item { display:flex;align-items:center;gap:10px;margin-bottom:12px; }
-.barra-nome { font-size:12px;color:var(--cinza-600);width:130px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.barra-track { flex:1;height:7px;background:var(--cinza-200);border-radius:10px;overflow:hidden; }
-.barra-fill  { height:100%;border-radius:10px;transition:width .6s ease; }
-.barra-qtd   { font-size:12px;font-weight:700;color:var(--cinza-800);width:24px;text-align:right;flex-shrink:0; }
-
-.mb-3 { margin-bottom: 14px; }
-</style>
-@endpush
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-// ─────────────────────────────────────────────────────────────
-// ESTADO
-// ─────────────────────────────────────────────────────────────
-const CSRF     = document.querySelector('meta[name="csrf-token"]').content;
-let chartVol   = null;
-let chartStat  = null;
-let docIdAtual = null;
-
-const STATUS_CORES = {
-    novo:       { bg: '#eff6ff', cor: '#2563eb' },
-    em_analise: { bg: '#fffbeb', cor: '#d97706' },
-    pendente:   { bg: '#fef3c7', cor: '#92400e' },
-    finalizado: { bg: '#f0fdf4', cor: '#059669' },
-    desativado: { bg: '#f1f5f9', cor: '#64748b' },
-};
-const STATUS_LABELS = {
-    novo: 'Novo', em_analise: 'Em Análise',
-    pendente: 'Pendente', finalizado: 'Finalizado', desativado: 'Desativado',
-};
-
-// ─────────────────────────────────────────────────────────────
-// INICIALIZAÇÃO
-// ─────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-    buscarMetricas();
-    setInterval(buscarMetricas, 30000);
-});
-
-async function buscarMetricas() {
-    try {
-        const r    = await fetch('/api/dashboard/metricas');
-        const data = await r.json();
-        atualizarKpis(data.kpis);
-        renderChartVolume(data.volume_diario);
-        renderChartStatus(data.por_status);
-        renderBarras('barrasSetor',       data.por_setor,       '#2563eb');
-        renderBarras('barrasResponsavel', data.por_responsavel, '#10b981');
-        document.getElementById('indLive').textContent = 'Atualizado ' + new Date().toLocaleTimeString('pt-BR');
-    } catch (e) {
-        console.error('Erro ao buscar métricas:', e);
-    }
-}
-
-// ── KPIs ─────────────────────────────────────────────────────
-function atualizarKpis(kpis) {
-    Object.entries(kpis).forEach(([key, val]) => {
-        const el = document.getElementById('kv-' + key);
-        if (el) animarContador(el, parseInt(el.textContent) || 0, val);
-    });
-}
-
-function animarContador(el, de, para) {
-    if (de === para) return;
-    const dur = 500, steps = 20, inc = (para - de) / steps;
-    let cur = de, i = 0;
-    const t = setInterval(() => {
-        cur += inc; i++;
-        el.textContent = Math.round(cur);
-        if (i >= steps) { el.textContent = para; clearInterval(t); }
-    }, dur / steps);
-}
-
-// ── Gráfico de Volume Diário ──────────────────────────────────
-function renderChartVolume(dados) {
-    const ctx = document.getElementById('chartVolume').getContext('2d');
-    const labels = dados.map(d => d.dia);
-    const vals   = dados.map(d => d.total);
-
-    if (chartVol) {
-        chartVol.data.labels   = labels;
-        chartVol.data.datasets[0].data = vals;
-        chartVol.update('active');
-        return;
-    }
-
-    chartVol = new Chart(ctx, {
-        type: 'bar',
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Rosca
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
         data: {
-            labels,
+            labels: ['Novos', 'Em Análise', 'Pendentes', 'Finalizados', 'Desativados'],
             datasets: [{
-                label: 'Processos abertos',
-                data: vals,
-                backgroundColor: 'rgba(37,99,235,.12)',
-                borderColor:     '#2563eb',
-                borderWidth:     2,
-                borderRadius:    6,
-                borderSkipped:   false,
+                data: [
+                    {{ $kpis['novo'] ?? 0 }},
+                    {{ $kpis['em_analise'] ?? 0 }},
+                    {{ $kpis['pendente'] ?? 0 }},
+                    {{ $kpis['finalizado'] ?? 0 }},
+                    {{ $kpis['desativado'] ?? 0 }}
+                ],
+                backgroundColor: ['#2563eb', '#d97706', '#92400e', '#059669', '#64748b'],
+                borderWidth: 0,
+                borderRadius: 10,
+                cutout: '65%'
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: true,
             plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} processo(s)` } }
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = {{ $kpis['total'] ?? 0 }};
+                            const value = context.parsed;
+                            const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return `${context.label}: ${value} (${percent}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Gráfico de Barras
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    new Chart(monthlyCtx, {
+        type: 'bar',
+        data: {
+            labels: {!! json_encode($meses ?? ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']) !!},
+            datasets: [{
+                label: 'Meus Processos',
+                data: {!! json_encode($processosPorMesArray ?? []) !!},
+                backgroundColor: 'rgba(37,99,235,0.7)',
+                borderRadius: 8,
+                borderSkipped: false,
+                barPercentage: 0.7,
+                categoryPercentage: 0.8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.parsed.y} processo(s)`;
+                        }
+                    }
+                }
             },
             scales: {
-                x: { grid: { display: false }, ticks: { font: { family: 'Sora', size: 11 }, color: '#94a3b8' } },
-                y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Sora', size: 11 }, color: '#94a3b8', precision: 0 }, beginAtZero: true }
+                y: { 
+                    beginAtZero: true, 
+                    grid: { color: '#e2e8f0' },
+                    ticks: { precision: 0 }
+                },
+                x: { grid: { display: false } }
             }
         }
     });
-}
-
-// ── Gráfico de Rosca ─────────────────────────────────────────
-function renderChartStatus(porStatus) {
-    const ctx    = document.getElementById('chartStatus').getContext('2d');
-    const chaves = Object.keys(STATUS_LABELS).filter(k => porStatus[k]);
-    const labels = chaves.map(k => STATUS_LABELS[k]);
-    const vals   = chaves.map(k => porStatus[k] || 0);
-    const cores  = chaves.map(k => STATUS_CORES[k]?.cor || '#94a3b8');
-
-    if (chartStat) {
-        chartStat.data.labels = labels;
-        chartStat.data.datasets[0].data = vals;
-        chartStat.data.datasets[0].backgroundColor = cores;
-        chartStat.update('active');
-    } else {
-        chartStat = new Chart(ctx, {
-            type: 'doughnut',
-            data: { labels, datasets: [{ data: vals, backgroundColor: cores, borderWidth: 2, borderColor: '#fff', hoverOffset: 4 }] },
-            options: {
-                responsive: true, maintainAspectRatio: true, cutout: '70%',
-                plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.label}: ${c.parsed}` } } }
-            }
-        });
-    }
-
-    const leg = document.getElementById('legendStatus');
-    leg.innerHTML = chaves.map((k,i) => `
-        <div style="display:flex;align-items:center;gap:6px;">
-            <span style="width:10px;height:10px;border-radius:2px;background:${cores[i]};flex-shrink:0;"></span>
-            <span style="font-size:11px;color:var(--cinza-600);">${labels[i]}</span>
-            <span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--cinza-800);">${vals[i]}</span>
-        </div>
-    `).join('');
-}
-
-// ── Barras horizontais ────────────────────────────────────────
-function renderBarras(containerId, dados, cor) {
-    const el = document.getElementById(containerId);
-    if (!dados || !Object.keys(dados).length) {
-        el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--cinza-400);font-size:13px;">Sem dados</div>';
-        return;
-    }
-    const max  = Math.max(...Object.values(dados));
-    const html = Object.entries(dados).map(([nome, qtd]) => `
-        <div class="barra-item">
-            <div class="barra-nome" title="${esc(nome)}">${esc(nome)}</div>
-            <div class="barra-track">
-                <div class="barra-fill" style="width:${Math.round((qtd/max)*100)}%;background:${cor};"></div>
-            </div>
-            <div class="barra-qtd">${qtd}</div>
-        </div>
-    `).join('');
-    el.innerHTML = html || '<div style="color:var(--cinza-400);font-size:13px;padding:12px 0;">Sem dados</div>';
-}
-
-// ─────────────────────────────────────────────────────────────
-// MODAL DE ATRIBUIÇÃO
-// ─────────────────────────────────────────────────────────────
-async function abrirModalAtribuir(docId, protocolo) {
-    docIdAtual = docId;
-    document.getElementById('modalProtocolo').textContent = 'Processo ' + protocolo;
-    document.getElementById('modalError').style.display = 'none';
-    document.getElementById('modalOverlay').style.display = 'flex';
-
-    const select = document.getElementById('selectAnalista');
-    select.innerHTML = '<option value="">Carregando...</option>';
-    select.disabled = true;
-
-    try {
-        const r    = await fetch('/api/dashboard/analistas');
-        const lista = await r.json();
-        select.innerHTML = '<option value="">— Selecione um responsável —</option>';
-        lista.forEach(a => {
-            const opt = document.createElement('option');
-            opt.value = a.id;
-            opt.textContent = `${a.nome}${a.cargo ? ' ('+a.cargo+')' : ''}`;
-            opt.dataset.carga = a.carga;
-            select.appendChild(opt);
-        });
-        select.disabled = false;
-    } catch {
-        select.innerHTML = '<option value="">Erro ao carregar analistas</option>';
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('selectAnalista').addEventListener('change', function() {
-        const opt  = this.options[this.selectedIndex];
-        const hint = document.getElementById('cargaAnalista');
-        if (opt.dataset.carga !== undefined && this.value) {
-            hint.textContent = opt.dataset.carga + ' processo(s) ativo(s)';
-            hint.style.color = opt.dataset.carga > 5 ? 'var(--amarelo)' : 'var(--verde)';
-        } else {
-            hint.textContent = '';
-        }
-    });
-});
-
-function fecharModal() {
-    document.getElementById('modalOverlay').style.display = 'none';
-    docIdAtual = null;
-}
-
-async function confirmarAtribuicao() {
-    const usuarioId = document.getElementById('selectAnalista').value;
-    if (!usuarioId) { mostrarErroModal('Selecione um responsável.'); return; }
-
-    const btn = document.getElementById('btnConfirmar');
-    btn.disabled = true;
-    btn.textContent = '⏳ Atribuindo...';
-
-    try {
-        const r = await fetch(`/api/processos/${docIdAtual}/atribuir`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-            body: JSON.stringify({ usuario_id: usuarioId }),
-        });
-        const data = await r.json();
-
-        if (data.error) { mostrarErroModal(data.error); return; }
-
-        const row = document.getElementById('fila-row-' + docIdAtual);
-        if (row) { row.style.opacity = '0'; row.style.transition = 'opacity .3s'; setTimeout(() => row.remove(), 300); }
-
-        fecharModal();
-        buscarMetricas();
-        mostrarToast(`Processo ${data.protocolo} atribuído a ${data.analista}.`);
-    } catch {
-        mostrarErroModal('Erro de comunicação. Tente novamente.');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '✅ Confirmar Atribuição';
-    }
-}
-
-function mostrarErroModal(msg) {
-    const el = document.getElementById('modalError');
-    el.textContent = msg;
-    el.style.display = 'flex';
-}
-
-// ── Toast ─────────────────────────────────────────────────────
-function mostrarToast(msg) {
-    const t = document.createElement('div');
-    t.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:999;
-        background:var(--cinza-800);color:#fff;padding:12px 20px;
-        border-radius:var(--radius-sm);font-size:13px;font-weight:500;
-        box-shadow:0 8px 24px rgba(0,0,0,.25);animation:slideUp .25s ease;
-        max-width:320px;`;
-    t.textContent = '✅ ' + msg;
-    document.body.appendChild(t);
-    setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 3500);
-}
-
-function esc(s) {
-    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-document.getElementById('modalOverlay')?.addEventListener('click', function(e) {
-    if (e.target === this) fecharModal();
 });
 </script>
 @endpush
