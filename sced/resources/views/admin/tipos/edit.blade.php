@@ -1,10 +1,10 @@
 {{-- ============================================================
      resources/views/admin/tipos/edit.blade.php
-     EDITAR SERVIÇO - PADRÃO MODERNO
+     EDITAR SERVIÇO - VERSÃO CORRIGIDA
      ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Editar Serviço')
-@section('subtitle', $servico->nome)
+@section('subtitle', $tipo->nome)
 
 @section('topbar-actions')
     <a href="{{ route('tipos.index') }}" class="btn-outline-sced">← Voltar</a>
@@ -60,7 +60,6 @@
         color: #dc2626;
     }
     
-    /* Grid de documentos */
     .docs-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -115,7 +114,6 @@
         color: #0369a1;
     }
     
-    /* Cargos responsáveis */
     .cargos-grid {
         display: flex;
         flex-direction: column;
@@ -160,7 +158,7 @@
 <div class="row justify-content-center">
     <div class="col-lg-10">
 
-        <form action="{{ route('tipos.update', $servico) }}" method="POST">
+        <form action="{{ route('tipos.update', $tipo) }}" method="POST">
             @csrf
             @method('PUT')
 
@@ -174,24 +172,24 @@
                     <div class="col-md-8">
                         <label class="form-label-sced">Nome do Serviço <span class="text-danger">*</span></label>
                         <input type="text" name="nome" class="form-input-sced @error('nome') is-invalid @enderror"
-                               value="{{ old('nome', $servico->nome) }}" required>
+                               value="{{ old('nome', $tipo->nome) }}" required>
                         @error('nome')<div class="form-error">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-4">
                         <label class="form-label-sced">Status</label>
                         <select name="status" class="form-input-sced">
-                            <option value="ativo" {{ old('status', $servico->status) == 'ativo' ? 'selected' : '' }}>🟢 Ativo</option>
-                            <option value="inativo" {{ old('status', $servico->status) == 'inativo' ? 'selected' : '' }}>🔴 Inativo</option>
+                            <option value="ativo" {{ old('status', $tipo->status) == 'ativo' ? 'selected' : '' }}>🟢 Ativo</option>
+                            <option value="inativo" {{ old('status', $tipo->status) == 'inativo' ? 'selected' : '' }}>🔴 Inativo</option>
                         </select>
-                        @if($servico->documentos()->count() > 0)
+                        @if($tipo->documentos()->count() > 0)
                             <div class="helper-text" style="color: var(--amarelo);">
-                                ⚠️ Este serviço possui {{ $servico->documentos()->count() }} processo(s) vinculado(s).
+                                ⚠️ Este serviço possui {{ $tipo->documentos()->count() }} processo(s) vinculado(s).
                             </div>
                         @endif
                     </div>
                     <div class="col-12">
                         <label class="form-label-sced">Descrição</label>
-                        <textarea name="descricao" class="form-input-sced" rows="3">{{ old('descricao', $servico->descricao) }}</textarea>
+                        <textarea name="descricao" class="form-input-sced" rows="3">{{ old('descricao', $tipo->descricao) }}</textarea>
                     </div>
                 </div>
             </div>
@@ -207,7 +205,7 @@
                     <select name="departamento_destino_id" class="form-input-sced">
                         <option value="">Selecione o setor responsável</option>
                         @foreach($departamentos as $dep)
-                            <option value="{{ $dep->id }}" {{ old('departamento_destino_id', $servico->departamento_destino_id) == $dep->id ? 'selected' : '' }}>
+                            <option value="{{ $dep->id }}" {{ old('departamento_destino_id', $tipo->departamento_destino_id) == $dep->id ? 'selected' : '' }}>
                                 🏢 {{ $dep->nome }}
                             </option>
                         @endforeach
@@ -225,7 +223,7 @@
                     Selecione os documentos que podem ser anexados aos processos deste serviço.
                 </div>
 
-                @php $selecionados = old('documentos_necessarios', $servico->documentosTipo->pluck('id')->toArray()); @endphp
+                @php $selecionados = old('documentos_necessarios', $tipo->documentosTipo->pluck('id')->toArray()); @endphp
 
                 @if($documentosDisponiveis->isEmpty())
                     <div class="alert alert-warning">
@@ -266,7 +264,7 @@
                     Selecione os cargos que podem visualizar e atuar sobre processos deste serviço.
                 </div>
 
-                @php $cargosAtuais = old('cargos_responsaveis', $servico->cargos_responsaveis ?? []); @endphp
+                @php $cargosAtuais = old('cargos_responsaveis', $tipo->cargos_responsaveis ?? []); @endphp
 
                 <div class="cargos-grid">
                     <label class="cargo-item {{ in_array('N1', $cargosAtuais) ? 'selected' : '' }}" id="cargo-n1-label">
