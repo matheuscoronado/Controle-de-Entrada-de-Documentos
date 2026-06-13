@@ -1,6 +1,6 @@
 {{-- ============================================================
      resources/views/processos/show.blade.php
-     Detalhe do Processo — Reformulação Visual Fase 1
+     TELA DE DETALHE DO PROCESSO - REENVIO COM SELECT DE TIPO
      ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Processo ' . $documento->numero_protocolo)
@@ -8,393 +8,910 @@
 
 @section('topbar-actions')
     <a href="{{ route('documentos.index') }}" class="btn-secondary-sced">← Voltar</a>
-    @if(in_array('editar', $acoes))
+    @if(in_array('editar', $acoes ?? []))
         <a href="{{ route('documentos.edit', $documento) }}" class="btn-outline-sced">✏️ Editar</a>
     @endif
 @endsection
 
 @section('content')
 
-{{-- ── CABEÇALHO DO PROCESSO ────────────────────────────── --}}
-<div class="show-header card-sced card-body-sced mb-3">
-    <div class="show-header-left">
-        <div class="show-header-label">Número de Protocolo</div>
-        <div class="show-header-protocolo">
-            <span class="protocolo-codigo show-protocolo-codigo">{{ $documento->numero_protocolo }}</span>
-        </div>
-        <div class="show-header-meta">
-            Aberto em {{ $documento->created_at->format('d/m/Y \à\s H:i') }}
-            · por <strong>{{ $documento->usuarioRegistro->nome }}</strong>
-        </div>
-    </div>
-    <div class="show-header-right">
-        <span class="badge-status badge-{{ $documento->status }} show-badge-status">
-            @php
-                $statusLabel = [
-                    'novo'       => 'Novo',
-                    'em_analise' => 'Em Análise',
-                    'pendente'   => 'Pendente',
-                    'finalizado' => 'Finalizado',
-                    'desativado' => 'Desativado',
-                ];
-            @endphp
-            {{ $statusLabel[$documento->status] ?? ucfirst($documento->status) }}
-        </span>
-        @if($documento->atribuidoA)
-        <div class="show-header-responsavel">
-            👤 {{ $documento->atribuidoA->nome }}
-        </div>
-        @endif
-    </div>
-</div>
+<style>
+    .processo-header {
+        background: linear-gradient(135deg, var(--azul-escuro) 0%, var(--azul-medio) 100%);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+        color: white;
+    }
+    .processo-header-protocolo {
+        font-size: 24px;
+        font-weight: 700;
+        font-family: monospace;
+        margin-bottom: 8px;
+    }
+    .processo-header-meta {
+        font-size: 12px;
+        opacity: 0.8;
+    }
+    .processo-header-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 16px;
+        border-radius: 30px;
+        font-size: 13px;
+        font-weight: 600;
+        background: rgba(255,255,255,0.2);
+    }
+    
+    .info-card {
+        background: var(--branco);
+        border-radius: 16px;
+        border: 1px solid var(--cinza-200);
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    .info-card-header {
+        padding: 16px 20px;
+        background: var(--cinza-100);
+        border-bottom: 1px solid var(--cinza-200);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--azul-escuro);
+    }
+    .info-card-body {
+        padding: 20px;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+    }
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .info-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--cinza-400);
+    }
+    .info-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--cinza-800);
+    }
+    
+    .docs-stats {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+    .docs-stat {
+        flex: 1;
+        min-width: 100px;
+        background: var(--cinza-100);
+        border-radius: 12px;
+        padding: 14px;
+        text-align: center;
+    }
+    .docs-stat-value {
+        font-size: 24px;
+        font-weight: 700;
+    }
+    .docs-stat-label {
+        font-size: 11px;
+        color: var(--cinza-400);
+        margin-top: 4px;
+    }
+    .docs-stat.approved .docs-stat-value { color: var(--verde); }
+    .docs-stat.rejected .docs-stat-value { color: var(--vermelho); }
+    .docs-stat.pending .docs-stat-value { color: var(--amarelo); }
+    .docs-stat.total .docs-stat-value { color: var(--azul-claro); }
+    
+    .documento-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        background: var(--cinza-100);
+        border-radius: 12px;
+        margin-bottom: 10px;
+        transition: all 0.2s;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .documento-item:hover {
+        background: var(--cinza-200);
+    }
+    .documento-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 250px;
+    }
+    .documento-icon {
+        font-size: 24px;
+    }
+    .documento-details {
+        flex: 1;
+    }
+    .documento-nome {
+        font-weight: 700;
+        font-size: 13px;
+        color: var(--azul-claro);
+        margin-bottom: 2px;
+    }
+    .documento-meta {
+        font-size: 11px;
+        color: var(--cinza-400);
+        margin-top: 2px;
+    }
+    .documento-status {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 20px;
+        white-space: nowrap;
+    }
+    .documento-status.aprovado { background: #d1fae5; color: #065f46; }
+    .documento-status.recusado { background: #fef2f2; color: #991b1b; }
+    .documento-status.pendente { background: #fef3c7; color: #92400e; }
+    .documento-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .btn-doc {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        transition: all 0.2s;
+        cursor: pointer;
+        border: none;
+        background: var(--cinza-200);
+    }
+    .btn-download {
+        background: var(--cinza-200);
+        color: var(--cinza-600);
+    }
+    .btn-download:hover {
+        background: var(--cinza-300);
+    }
+    .btn-approve {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    .btn-approve:hover {
+        background: #a7f3d0;
+    }
+    .btn-reject {
+        background: #fef2f2;
+        color: #991b1b;
+    }
+    .btn-reject:hover {
+        background: #fecaca;
+    }
+    
+    .timeline {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .timeline-item {
+        display: flex;
+        gap: 14px;
+        padding-bottom: 20px;
+        position: relative;
+    }
+    .timeline-item:not(:last-child)::before {
+        content: '';
+        position: absolute;
+        left: 17px;
+        top: 35px;
+        bottom: 0;
+        width: 2px;
+        background: var(--cinza-200);
+    }
+    .timeline-dot {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--azul-claro);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 16px;
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(37,99,235,.3);
+    }
+    .timeline-content {
+        flex: 1;
+        background: var(--cinza-100);
+        border-radius: 12px;
+        padding: 12px 16px;
+    }
+    .timeline-date {
+        font-size: 11px;
+        color: var(--cinza-400);
+        margin-bottom: 4px;
+    }
+    .timeline-text {
+        font-size: 13px;
+        color: var(--cinza-800);
+    }
+    .timeline-user {
+        font-size: 11px;
+        color: var(--azul-claro);
+        margin-top: 4px;
+    }
+    
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    .modal-container {
+        background: white;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 500px;
+        animation: modalFadeIn 0.2s ease;
+    }
+    @keyframes modalFadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--cinza-200);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-body {
+        padding: 20px;
+    }
+    .modal-footer {
+        padding: 16px 20px;
+        border-top: 1px solid var(--cinza-200);
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+    
+    .badge-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .badge-status::before {
+        content: "●";
+        font-size: 8px;
+    }
+    .badge-novo { background: #eff6ff; color: #2563eb; }
+    .badge-em_analise { background: #fffbeb; color: #d97706; }
+    .badge-pendente { background: #fef3c7; color: #92400e; }
+    .badge-finalizado { background: #f0fdf4; color: #059669; }
+    .badge-desativado { background: #f1f5f9; color: #64748b; }
+    
+    .acao-bloco {
+        background: var(--cinza-100);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+    .acao-bloco:last-child {
+        margin-bottom: 0;
+    }
+    .acao-bloco-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--azul-escuro);
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--cinza-200);
+    }
+    
+    .btn-acao {
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+    }
+    .btn-assumir { background: var(--azul-claro); color: white; }
+    .btn-assumir:hover { background: var(--azul-hover); transform: translateY(-1px); }
+    .btn-devolver { background: #fef3c7; color: #92400e; }
+    .btn-devolver:hover { background: #fde68a; }
+    .btn-finalizar { background: #d1fae5; color: #065f46; }
+    .btn-finalizar:hover { background: #a7f3d0; }
+    .btn-reenviar { background: #e0e7ff; color: #3730a3; }
+    .btn-reenviar:hover { background: #c7d2fe; }
+    .btn-desativar { background: #fef2f2; color: #991b1b; }
+    .btn-desativar:hover { background: #fecaca; }
+    .btn-reabrir { background: #e0e7ff; color: #3730a3; }
+    .btn-reabrir:hover { background: #c7d2fe; }
+    
+    .alert-warning-box {
+        background: #fef3c7;
+        color: #92400e;
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 12px;
+        margin-bottom: 12px;
+        border-left: 3px solid #f59e0b;
+    }
+    
+    .acoes-card {
+        background: var(--branco);
+        border-radius: 16px;
+        border: 1px solid var(--cinza-200);
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+    .acoes-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--azul-escuro);
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--cinza-200);
+    }
+    
+    /* Estilos para o upload de reenvio */
+    .upload-zone-reenvio {
+        border: 2px dashed var(--cinza-200);
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        background: var(--cinza-100);
+        transition: all 0.2s;
+        margin-bottom: 15px;
+    }
+    .upload-zone-reenvio:hover {
+        border-color: var(--azul-claro);
+        background: rgba(37,99,235,.04);
+    }
+    .reenvio-arquivo-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px;
+        background: var(--branco);
+        border: 1px solid var(--cinza-200);
+        border-radius: 10px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .reenvio-arquivo-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        flex-wrap: wrap;
+    }
+    .reenvio-arquivo-nome {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--cinza-800);
+    }
+    .reenvio-arquivo-select {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--cinza-200);
+        background: white;
+        font-size: 12px;
+        min-width: 180px;
+        cursor: pointer;
+    }
+    .btn-remove-arquivo {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--vermelho);
+        font-size: 18px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    .btn-remove-arquivo:hover {
+        background: #fef2f2;
+    }
+    
+    .w-100 { width: 100%; }
+    .mt-3 { margin-top: 16px; }
+    .mb-2 { margin-bottom: 10px; }
+    .mt-2 { margin-top: 10px; }
+    .text-center { text-align: center; }
+</style>
 
-<div class="row g-3">
+<div class="container-fluid px-0">
 
-    {{-- ── COLUNA PRINCIPAL ──────────────────────────────── --}}
-    <div class="col-12 col-lg-8">
-
-        {{-- Dados do processo --}}
-        <div class="card-sced card-body-sced mb-3">
-            <div class="show-section-title">📋 Informações do Processo</div>
-            <div class="row g-3">
-                <div class="col-6">
-                    <div class="dado-label">Serviço</div>
-                    <div class="dado-valor">{{ $documento->tipoDocumento->nome }}</div>
-                </div>
-                <div class="col-6">
-                    <div class="dado-label">Data de Abertura</div>
-                    <div class="dado-valor">{{ \Carbon\Carbon::parse($documento->data_recebimento)->format('d/m/Y') }}</div>
-                </div>
-                <div class="col-6">
-                    <div class="dado-label">Solicitante</div>
-                    <div class="dado-valor">{{ $documento->remetente }}</div>
-                </div>
-                <div class="col-6">
-                    <div class="dado-label">Setor de Destino</div>
-                    <div class="dado-valor">{{ $documento->setor_destino }}</div>
-                </div>
-                @if($documento->tipoDocumento->cargo_responsavel)
-                <div class="col-6">
-                    <div class="dado-label">Cargo Responsável</div>
-                    <div class="dado-valor">{{ $documento->tipoDocumento->cargo_responsavel }}</div>
-                </div>
-                @endif
-                @if($documento->descricao)
-                <div class="col-12">
-                    <div class="dado-label">Descrição</div>
-                    <div class="dado-valor" style="color:var(--cinza-600);line-height:1.6;">{{ $documento->descricao }}</div>
-                </div>
-                @endif
+{{-- CABEÇALHO DO PROCESSO --}}
+<div class="processo-header">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <div class="processo-header-protocolo">
+                📄 {{ $documento->numero_protocolo }}
+            </div>
+            <div class="processo-header-meta">
+                Aberto em {{ $documento->created_at->format('d/m/Y \à\s H:i') }}
+                · por <strong>{{ $documento->usuarioRegistro->nome }}</strong>
             </div>
         </div>
-
-        {{-- Anexos com status de validação --}}
-        @if($documento->anexos->count() > 0)
-        <div class="card-sced card-body-sced mb-3">
-            <div class="show-section-header">
-                <div class="show-section-title mb-0">📎 Documentos Anexos</div>
-                <span class="show-section-count">
-                    {{ $documento->anexos->count() }} arquivo(s)
-                    · {{ $documento->anexos->where('status_validacao','aprovado')->count() }} aprovado(s)
-                    · {{ $documento->anexos->where('status_validacao','pendente')->count() }} pendente(s)
-                </span>
-            </div>
-
-            @foreach($documento->anexos as $anexo)
-            <div class="anexo-item">
-                <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-                    <span style="font-size:22px;flex-shrink:0;">
-                        {{ str_contains($anexo->tipo_mime,'image') ? '🖼️' : (str_ends_with($anexo->nome_arquivo,'.pdf') ? '📕' : '📄') }}
-                    </span>
-                    <div style="min-width:0;">
-                        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                            {{ $anexo->nome_arquivo }}
-                        </div>
-                        <div style="font-size:11px;color:var(--cinza-400);margin-top:2px;">
-                            {{ $anexo->label_tipo_anexo }}
-                            · {{ number_format($anexo->tamanho_bytes / 1024, 1) }} KB
-                        </div>
-                        @if($anexo->observacao_validacao)
-                        <div style="font-size:11px;color:var(--cinza-600);margin-top:3px;font-style:italic;">
-                            "{{ $anexo->observacao_validacao }}"
-                        </div>
-                        @endif
-                    </div>
-                </div>
-                <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-                    @php
-                        $validBg    = ['pendente'=>'#fef3c7','aprovado'=>'#d1fae5','rejeitado'=>'#fef2f2'];
-                        $validColor = ['pendente'=>'#92400e','aprovado'=>'#065f46','rejeitado'=>'#991b1b'];
-                        $validLabel = ['pendente'=>'⏳ Pendente','aprovado'=>'✅ Aprovado','rejeitado'=>'❌ Rejeitado'];
-                    @endphp
-                    <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;
-                                 background:{{ $validBg[$anexo->status_validacao] }};
-                                 color:{{ $validColor[$anexo->status_validacao] }};">
-                        {{ $validLabel[$anexo->status_validacao] }}
-                    </span>
-
-                    @if(in_array('validar_anexo', $acoes))
-                    <form method="POST" action="{{ route('documentos.anexo.validar', [$documento, $anexo]) }}"
-                          style="display:inline;">
-                        @csrf
-                        <div style="display:flex;gap:4px;">
-                            <button type="submit" name="status_validacao" value="aprovado"
-                                    class="show-btn-validar show-btn-aprovar"
-                                    title="Aprovar">✓</button>
-                            <button type="submit" name="status_validacao" value="rejeitado"
-                                    class="show-btn-validar show-btn-rejeitar"
-                                    title="Rejeitar">✕</button>
-                        </div>
-                    </form>
-                    @endif
-
-                    @if(in_array('substituir_anexo', $acoes))
-                    <form method="POST" action="{{ route('documentos.anexo.substituir', [$documento, $anexo]) }}"
-                          enctype="multipart/form-data" style="display:inline;">
-                        @csrf
-                        <label class="show-btn-substituir" title="Substituir arquivo">
-                            📎
-                            <input type="file" name="arquivo" style="display:none"
-                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                                   onchange="this.form.submit()">
-                        </label>
-                    </form>
-                    @endif
-
-                    <a href="{{ Storage::url($anexo->caminho_arquivo) }}"
-                       target="_blank" class="btn-outline-sced" style="font-size:12px;padding:5px 10px;">
-                        ⬇ Baixar
-                    </a>
-                </div>
-            </div>
-            @endforeach
-        </div>
-        @endif
-
-        {{-- Histórico de movimentações --}}
-        <div class="card-sced card-body-sced mb-3">
-            <div class="show-section-title">🕐 Histórico de Movimentações</div>
-            <ul class="timeline">
+        <div class="d-flex flex-column align-items-end gap-2">
+            <span class="processo-header-status">
                 @php
-                    $timelineIcons = [
-                        'novo'       => '🆕',
+                    $statusIcon = [
+                        'novo' => '🆕',
                         'em_analise' => '🔍',
-                        'pendente'   => '⏳',
+                        'pendente' => '⏳',
                         'finalizado' => '✅',
                         'desativado' => '🚫',
                     ];
-                    $statusLabel = [
-                        'novo'       => 'Novo',
-                        'em_analise' => 'Em Análise',
-                        'pendente'   => 'Pendente',
-                        'finalizado' => 'Finalizado',
-                        'desativado' => 'Desativado',
-                    ];
                 @endphp
-                @foreach($documento->historicos->sortByDesc('created_at') as $hist)
-                <li class="timeline-item">
-                    <div class="timeline-dot">
-                        {{ $timelineIcons[$hist->status_novo] ?? '●' }}
+                {{ $statusIcon[$documento->status] ?? '📋' }}
+                {{ $documento->label_status }}
+            </span>
+            @if($documento->atribuidoA)
+                <span class="processo-header-meta">
+                    👤 Responsável: {{ $documento->atribuidoA->nome }}
+                </span>
+            @endif
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    {{-- COLUNA PRINCIPAL --}}
+    <div class="col-12 col-lg-8">
+
+        {{-- INFORMAÇÕES DO PROCESSO --}}
+        <div class="info-card">
+            <div class="info-card-header">📋 Informações do Processo</div>
+            <div class="info-card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Serviço</span>
+                        <span class="info-value">{{ $documento->tipoDocumento->nome }}</span>
                     </div>
-                    <div class="timeline-content">
-                        <div class="timeline-date">
-                            {{ $hist->usuario->nome ?? '—' }}
-                            · {{ \Carbon\Carbon::parse($hist->created_at)->format('d/m/Y H:i') }}
+                    <div class="info-item">
+                        <span class="info-label">Solicitante</span>
+                        <span class="info-value">{{ $documento->remetente }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Setor de Destino</span>
+                        <span class="info-value">{{ $documento->setor_destino }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Data de Abertura</span>
+                        <span class="info-value">{{ $documento->created_at->format('d/m/Y H:i') }}</span>
+                    </div>
+                    @if($documento->descricao)
+                    <div class="info-item" style="grid-column: span 2;">
+                        <span class="info-label">Descrição</span>
+                        <span class="info-value">{{ $documento->descricao }}</span>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- DOCUMENTOS ANEXOS --}}
+        <div class="info-card">
+            <div class="info-card-header">📎 Documentos Anexos</div>
+            <div class="info-card-body">
+                
+                @php
+                    $totalDocs = $documento->anexos->count();
+                    $aprovados = $documento->anexos->where('status_validacao', 'aprovado')->count();
+                    $recusados = $documento->anexos->where('status_validacao', 'rejeitado')->count();
+                    $pendentes = $documento->anexos->where('status_validacao', 'pendente')->count();
+                @endphp
+                
+                <div class="docs-stats">
+                    <div class="docs-stat total"><div class="docs-stat-value">{{ $totalDocs }}</div><div class="docs-stat-label">Total</div></div>
+                    <div class="docs-stat approved"><div class="docs-stat-value">{{ $aprovados }}</div><div class="docs-stat-label">Aprovados</div></div>
+                    <div class="docs-stat rejected"><div class="docs-stat-value">{{ $recusados }}</div><div class="docs-stat-label">Recusados</div></div>
+                    <div class="docs-stat pending"><div class="docs-stat-value">{{ $pendentes }}</div><div class="docs-stat-label">Pendentes</div></div>
+                </div>
+
+                @foreach($documento->anexos as $anexo)
+                <div class="documento-item">
+                    <div class="documento-info">
+                        <div class="documento-icon">{{ str_contains($anexo->tipo_mime, 'image') ? '🖼️' : (str_ends_with($anexo->nome_arquivo, '.pdf') ? '📕' : '📄') }}</div>
+                        <div class="documento-details">
+                            <div class="documento-nome">{{ $anexo->label_tipo_anexo }}</div>
+                            <div class="documento-meta">Arquivo: {{ $anexo->nome_arquivo }} · {{ number_format($anexo->tamanho_bytes / 1024, 1) }} KB</div>
+                            @if($anexo->observacao_validacao)<div class="documento-meta" style="color: var(--cinza-500);">Motivo: "{{ $anexo->observacao_validacao }}"</div>@endif
                         </div>
-                        <div class="timeline-text">
-                            @if($hist->status_anterior)
-                                <span class="badge-status badge-{{ $hist->status_anterior }}" style="font-size:11px;">
-                                    {{ $statusLabel[$hist->status_anterior] ?? $hist->status_anterior }}
-                                </span>
-                                →
+                        <div class="documento-status {{ $anexo->status_validacao }}">
+                            @if($anexo->status_validacao == 'aprovado') ✅ Aprovado
+                            @elseif($anexo->status_validacao == 'rejeitado') ❌ Recusado
+                            @else ⏳ Pendente @endif
+                        </div>
+                    </div>
+                    <div class="documento-actions">
+                        <a href="{{ Storage::url($anexo->caminho_arquivo) }}" target="_blank" class="btn-doc btn-download">⬇️</a>
+                        @if(in_array('validar_anexo', $acoes ?? []))
+                            @if($anexo->status_validacao == 'pendente')
+                                <form method="POST" action="{{ route('documentos.anexo.validar', ['documento' => $documento->id, 'anexo' => $anexo->id]) }}" style="display: inline-block;" onsubmit="return confirm('Aprovar este documento?')">
+                                    @csrf
+                                    <input type="hidden" name="status_validacao" value="aprovado">
+                                    <button type="submit" class="btn-doc btn-approve">✅</button>
+                                </form>
+                                <button type="button" class="btn-doc btn-reject" onclick="abrirModalRejeicao({{ $anexo->id }})">❌</button>
                             @endif
-                            <span class="badge-status badge-{{ $hist->status_novo }}" style="font-size:11px;">
-                                {{ $statusLabel[$hist->status_novo] ?? $hist->status_novo }}
-                            </span>
-                        </div>
-                        @if($hist->observacoes)
-                        <div style="font-size:12px;color:var(--cinza-600);margin-top:5px;">
-                            {{ $hist->observacoes }}
-                        </div>
                         @endif
                     </div>
-                </li>
+                </div>
                 @endforeach
-            </ul>
+
+                @if($documento->anexos->isEmpty())
+                <div class="text-center py-4 text-muted">📭 Nenhum documento anexado</div>
+                @endif
+            </div>
+        </div>
+
+        {{-- HISTÓRICO DE MOVIMENTAÇÕES --}}
+        <div class="info-card">
+            <div class="info-card-header">🕐 Histórico de Movimentações</div>
+            <div class="info-card-body">
+                <ul class="timeline">
+                    @foreach($documento->historicos->sortByDesc('created_at') as $hist)
+                    <li class="timeline-item">
+                        <div class="timeline-dot">{{ $timelineIcons[$hist->status_novo] ?? '●' }}</div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">{{ \Carbon\Carbon::parse($hist->created_at)->format('d/m/Y H:i') }}</div>
+                            <div class="timeline-text">
+                                @if($hist->status_anterior)<span class="badge-status badge-{{ $hist->status_anterior }}" style="font-size: 11px;">{{ $statusLabel[$hist->status_anterior] ?? $hist->status_anterior }}</span> → @endif
+                                <span class="badge-status badge-{{ $hist->status_novo }}" style="font-size: 11px;">{{ $statusLabel[$hist->status_novo] ?? $hist->status_novo }}</span>
+                            </div>
+                            <div class="timeline-user">Por: {{ $hist->usuario->nome ?? '—' }}</div>
+                            @if($hist->observacoes)<div style="font-size: 12px; color: var(--cinza-500); margin-top: 6px;">{{ $hist->observacoes }}</div>@endif
+                        </div>
+                    </li>
+                    @endforeach
+                </ul>
+            </div>
         </div>
 
     </div>
 
-    {{-- ── COLUNA LATERAL ──────────────────────────────────── --}}
+    {{-- COLUNA LATERAL - AÇÕES --}}
     <div class="col-12 col-lg-4">
 
-        {{-- ── PAINEL DE AÇÕES ──────────────────────────── --}}
-        @php
-            $temAcoes = array_intersect($acoes, ['assumir','devolver','retornar','finalizar','desativar','reabrir']);
-        @endphp
-        @if(count($temAcoes) > 0)
-        <div class="card-sced card-body-sced mb-3 show-acoes-card">
-            <div class="show-section-title mb-0" style="margin-bottom:16px;">⚡ Ações Disponíveis</div>
+        {{-- CARD: AÇÕES PRINCIPAIS --}}
+        <div class="acoes-card">
+            <div class="acoes-title">⚡ Ações Disponíveis</div>
 
-            {{-- ASSUMIR --}}
-            @if(in_array('assumir', $acoes))
-            <form method="POST" action="{{ route('documentos.assumir', $documento) }}" class="show-acao-form">
-                @csrf
-                <div class="mb-2">
-                    <label class="show-acao-label">Observações (opcional)</label>
-                    <textarea name="observacoes" class="form-input-sced" rows="2"
-                              placeholder="Detalhes ao assumir..."></textarea>
-                </div>
-                <button type="submit" class="show-acao-btn show-acao-btn--assumir">
-                    🎯 Assumir Processo
-                </button>
-            </form>
+            @if(in_array('assumir', $acoes ?? []))
+            <div class="acao-bloco">
+                <div class="acao-bloco-title">🎯 Assumir Processo</div>
+                <form method="POST" action="{{ route('documentos.assumir', $documento) }}">
+                    @csrf
+                    <textarea name="observacoes" class="form-input-sced mb-2" rows="2" placeholder="Observações (opcional)"></textarea>
+                    <button type="submit" class="btn-acao btn-assumir w-100">🎯 Assumir Processo</button>
+                </form>
+            </div>
             @endif
 
-            {{-- DEVOLVER --}}
-            @if(in_array('devolver', $acoes))
-            <form method="POST" action="{{ route('documentos.devolver', $documento) }}" class="show-acao-form">
-                @csrf
-                <div class="mb-2">
-                    <label class="show-acao-label">Motivo da devolução <span style="color:var(--vermelho)">*</span></label>
-                    <textarea name="motivo" class="form-input-sced" rows="2"
-                              placeholder="Descreva o motivo da devolução..." required></textarea>
-                </div>
-                <button type="submit" class="show-acao-btn show-acao-btn--devolver">
-                    ↩️ Devolver ao Solicitante
-                </button>
-            </form>
+            @if(in_array('devolver', $acoes ?? []))
+            <div class="acao-bloco">
+                <div class="acao-bloco-title">↩️ Devolver ao Solicitante</div>
+                <form method="POST" action="{{ route('documentos.devolver', $documento) }}">
+                    @csrf
+                    <textarea name="motivo" class="form-input-sced mb-2" rows="3" placeholder="Motivo da devolução (obrigatório)" required></textarea>
+                    <button type="submit" class="btn-acao btn-devolver w-100">↩️ Devolver ao Solicitante</button>
+                </form>
+            </div>
             @endif
 
-            {{-- FINALIZAR --}}
-            @if(in_array('finalizar', $acoes))
-            <form method="POST" action="{{ route('documentos.finalizar', $documento) }}" class="show-acao-form">
-                @csrf
-                <div class="mb-2">
-                    <label class="show-acao-label">Observações finais (opcional)</label>
-                    <textarea name="observacoes" class="form-input-sced" rows="2"
-                              placeholder="Considerações finais..."></textarea>
-                </div>
-                <button type="submit" class="show-acao-btn show-acao-btn--finalizar">
-                    ✅ Finalizar Processo
-                </button>
-            </form>
+            @if(in_array('finalizar', $acoes ?? []))
+            <div class="acao-bloco">
+                <div class="acao-bloco-title">✅ Finalizar Processo</div>
+                @if($pendentes > 0)
+                    <div class="alert-warning-box">⚠️ Existem {{ $pendentes }} documento(s) pendente(s) de validação. Finalize-os antes de concluir o processo.</div>
+                @else
+                    <form method="POST" action="{{ route('documentos.finalizar', $documento) }}">
+                        @csrf
+                        <textarea name="observacoes" class="form-input-sced mb-2" rows="2" placeholder="Observações finais (opcional)"></textarea>
+                        <button type="submit" class="btn-acao btn-finalizar w-100">✅ Finalizar Processo</button>
+                    </form>
+                @endif
+            </div>
             @endif
 
-            {{-- RETORNAR (reenviar pelo solicitante) --}}
-            @if(in_array('retornar', $acoes))
-            <form method="POST" action="{{ route('documentos.retornar', $documento) }}"
-                  enctype="multipart/form-data" class="show-acao-form">
-                @csrf
-                <div class="mb-2">
-                    <label class="show-acao-label">Observações</label>
-                    <textarea name="observacoes" class="form-input-sced" rows="2"
-                              placeholder="Descreva os ajustes realizados..."></textarea>
-                </div>
-                <div class="mb-2">
-                    <label class="show-acao-label">Novos anexos (opcional)</label>
-                    <input type="file" name="anexos[]" multiple class="form-input-sced"
-                           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                </div>
-                <button type="submit" class="show-acao-btn show-acao-btn--retornar">
-                    📤 Reenviar ao Analista
-                </button>
-            </form>
+            {{-- REENVIAR --}}
+            @if(in_array('retornar', $acoes ?? []))
+            <div class="acao-bloco">
+                <div class="acao-bloco-title">📤 Reenviar</div>
+                <form method="POST" action="{{ route('documentos.retornar', $documento) }}" enctype="multipart/form-data" id="formReenvio">
+                    @csrf
+                    <div class="mb-2">
+                        <label class="form-label-sced">Descreva os ajustes realizados</label>
+                        <textarea name="observacoes" class="form-input-sced" rows="3" placeholder="Informe quais correções ou complementos foram feitos..."></textarea>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <label class="form-label-sced">Novos anexos</label>
+                        <div class="upload-zone-reenvio" onclick="document.getElementById('fileInputReenvio').click()">
+                            📎 Clique para selecionar arquivos (pode selecionar vários)
+                        </div>
+                        <input type="file" id="fileInputReenvio" multiple style="display:none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="adicionarArquivosReenvio(this.files)">
+                        <div id="reenvioLista" class="mt-2"></div>
+                    </div>
+                    
+                    <button type="submit" class="btn-acao btn-reenviar w-100">📤 Reenviar</button>
+                </form>
+            </div>
             @endif
 
-            {{-- DESATIVAR --}}
-            @if(in_array('desativar', $acoes))
-            <form method="POST" action="{{ route('documentos.desativar', $documento) }}" class="show-acao-form">
-                @csrf
-                <div class="mb-2">
-                    <label class="show-acao-label">Motivo <span style="color:var(--vermelho)">*</span></label>
-                    <textarea name="motivo" class="form-input-sced" rows="2"
-                              placeholder="Motivo da desativação..." required></textarea>
-                </div>
-                <button type="submit" class="show-acao-btn show-acao-btn--desativar">
-                    🚫 Desativar Processo
-                </button>
-            </form>
+        </div>
+
+        {{-- CARD: AÇÕES ADMINISTRATIVAS --}}
+        @if(in_array('desativar', $acoes ?? []) || in_array('reabrir', $acoes ?? []))
+        <div class="acoes-card">
+            <div class="acoes-title">🔧 Ações Administrativas</div>
+
+            @if(in_array('desativar', $acoes ?? []))
+            <div class="acao-bloco">
+                <div class="acao-bloco-title">🚫 Desativar Processo</div>
+                <form method="POST" action="{{ route('documentos.desativar', $documento) }}">
+                    @csrf
+                    <textarea name="motivo" class="form-input-sced mb-2" rows="3" placeholder="Motivo da desativação (obrigatório)" required></textarea>
+                    <button type="submit" class="btn-acao btn-desativar w-100">🚫 Desativar Processo</button>
+                </form>
+            </div>
             @endif
 
-            {{-- REABRIR --}}
-            @if(in_array('reabrir', $acoes))
-            <form method="POST" action="{{ route('documentos.reabrir', $documento) }}" class="show-acao-form">
-                @csrf
-                <div class="mb-2">
-                    <label class="show-acao-label">Observações (opcional)</label>
-                    <textarea name="observacoes" class="form-input-sced" rows="2"
-                              placeholder="Justificativa para reabertura..."></textarea>
-                </div>
-                <button type="submit" class="show-acao-btn show-acao-btn--reabrir">
-                    🔄 Reabrir Processo
-                </button>
-            </form>
+            @if(in_array('reabrir', $acoes ?? []))
+            <div class="acao-bloco">
+                <div class="acao-bloco-title">🔄 Reabrir Processo</div>
+                <form method="POST" action="{{ route('documentos.reabrir', $documento) }}">
+                    @csrf
+                    <textarea name="observacoes" class="form-input-sced mb-2" rows="2" placeholder="Justificativa para reabertura..."></textarea>
+                    <button type="submit" class="btn-acao btn-reabrir w-100">🔄 Reabrir Processo</button>
+                </form>
+            </div>
             @endif
+
         </div>
         @endif
 
-        {{-- Alterar status manual (apenas admin) --}}
+        {{-- ALTERAR STATUS MANUAL (ADMIN) --}}
         @can('alterarStatusManual', $documento)
-        <div class="card-sced card-body-sced mb-3">
-            <div class="show-section-title" style="font-size:13px;">🔄 Alterar Status Manualmente</div>
+        <div class="acoes-card">
+            <div class="acoes-title">🔄 Alterar Status Manual</div>
             <form method="POST" action="{{ route('documentos.status-manual', $documento) }}">
                 @csrf @method('PATCH')
-                <div style="margin-bottom:10px;">
-                    <label class="show-acao-label">Novo Status</label>
-                    <select name="status" class="form-input-sced">
-                        <option value="novo"       {{ $documento->status==='novo'       ? 'selected':'' }}>🆕 Novo</option>
-                        <option value="em_analise" {{ $documento->status==='em_analise' ? 'selected':'' }}>🔍 Em Análise</option>
-                        <option value="pendente"   {{ $documento->status==='pendente'   ? 'selected':'' }}>⏳ Pendente</option>
-                        <option value="finalizado" {{ $documento->status==='finalizado' ? 'selected':'' }}>✅ Finalizado</option>
-                        <option value="desativado" {{ $documento->status==='desativado' ? 'selected':'' }}>🚫 Desativado</option>
-                    </select>
-                </div>
-                <div style="margin-bottom:10px;">
-                    <label class="show-acao-label">Observações</label>
-                    <textarea name="observacoes" class="form-input-sced" rows="2"
-                              placeholder="Motivo ou detalhes..."></textarea>
-                </div>
-                <button type="submit" class="btn-primary-sced" style="width:100%;justify-content:center;font-size:13px;">
-                    Salvar Status
-                </button>
+                <select name="status" class="form-input-sced mb-2">
+                    <option value="novo" {{ $documento->status=='novo' ? 'selected' : '' }}>🆕 Novo</option>
+                    <option value="em_analise" {{ $documento->status=='em_analise' ? 'selected' : '' }}>🔍 Em Análise</option>
+                    <option value="pendente" {{ $documento->status=='pendente' ? 'selected' : '' }}>⏳ Pendente</option>
+                    <option value="finalizado" {{ $documento->status=='finalizado' ? 'selected' : '' }}>✅ Finalizado</option>
+                    <option value="desativado" {{ $documento->status=='desativado' ? 'selected' : '' }}>🚫 Desativado</option>
+                </select>
+                <textarea name="observacoes" class="form-input-sced mb-2" rows="2" placeholder="Motivo da alteração..."></textarea>
+                <button type="submit" class="btn-primary-sced w-100">Salvar Status</button>
             </form>
         </div>
         @endcan
 
-        {{-- Resumo técnico --}}
-        <div class="card-sced card-body-sced">
-            <div class="show-section-title" style="font-size:13px;">ℹ️ Dados Técnicos</div>
-            <div style="display:flex;flex-direction:column;gap:12px;">
-                @foreach([
-                    ['Serviço',     $documento->tipoDocumento->nome],
-                    ['Setor',       $documento->setor_destino],
-                    ['Responsável', $documento->tipoDocumento->cargo_responsavel ?? '—'],
-                    ['Protocolo',   $documento->numero_protocolo],
-                ] as [$label,$valor])
-                <div>
-                    <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--cinza-400);margin-bottom:2px;">{{ $label }}</div>
-                    <div style="font-size:13px;font-weight:600;color:var(--cinza-800);">{{ $valor }}</div>
-                </div>
-                @endforeach
-            </div>
-        </div>
-
     </div>
 
 </div>
+</div>
+
+{{-- MODAL PARA REJEITAR DOCUMENTO --}}
+<div id="modalRejeitar" class="modal-overlay" style="display: none;">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h4>❌ Recusar Documento</h4>
+            <button onclick="fecharModalRejeicao()" style="background: none; border: none; font-size: 20px; cursor: pointer;">✕</button>
+        </div>
+        <form id="formRejeitar" method="POST">
+            @csrf
+            <div class="modal-body">
+                <label class="form-label-sced">Motivo da recusa <span style="color: var(--vermelho);">*</span></label>
+                <textarea name="observacao" id="motivoRecusa" class="form-input-sced" rows="4" placeholder="Descreva o motivo da recusa..." required></textarea>
+                <input type="hidden" name="status_validacao" value="rejeitado">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary-sced" onclick="fecharModalRejeicao()">Cancelar</button>
+                <button type="submit" class="btn-primary-sced" style="background: var(--vermelho);">Confirmar Recusa</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @endsection
 
-@push('styles')
-<style>
-.dado-label { font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--cinza-400);margin-bottom:4px; }
-.dado-valor { font-size:14px;font-weight:500; }
-.anexo-item {
-    display:flex;align-items:center;justify-content:space-between;
-    gap:12px;padding:12px 14px;
-    background:var(--cinza-100);border-radius:var(--radius-sm);
-    margin-bottom:8px;flex-wrap:wrap;
+@push('scripts')
+<script>
+// Variáveis globais
+let reenvioArquivos = [];
+let todosDocumentos = [];
+let anexoIdAtual = null;
+
+// Carregar todos os documentos cadastrados
+async function carregarDocumentos() {
+    try {
+        const response = await fetch('/api/documentos/todos', {
+            headers: { 'Accept': 'application/json' }
+        });
+        todosDocumentos = await response.json();
+        console.log('Documentos carregados:', todosDocumentos);
+    } catch (e) {
+        console.error('Erro ao carregar documentos:', e);
+    }
 }
-.mb-2 { margin-bottom:8px; }
-</style>
+
+// Adicionar arquivos ao reenvio
+function adicionarArquivosReenvio(files) {
+    Array.from(files).forEach(file => {
+        reenvioArquivos.push({
+            file: file,
+            tipoDocumentoId: '',
+            tipoDocumentoNome: ''
+        });
+    });
+    atualizarListaReenvio();
+    sincronizarFormReenvio();
+}
+
+// Atualizar a lista visual de arquivos
+function atualizarListaReenvio() {
+    const container = document.getElementById('reenvioLista');
+    container.innerHTML = '';
+    
+    reenvioArquivos.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'reenvio-arquivo-item';
+        div.setAttribute('data-index', index);
+        
+        // Monta o select de tipos
+        let selectHtml = '<select class="reenvio-arquivo-select" data-index="' + index + '" onchange="mudarTipoReenvio(this)">';
+        selectHtml += '<option value="">Selecione o tipo de documento</option>';
+        todosDocumentos.forEach(doc => {
+            const selected = item.tipoDocumentoId == doc.id ? 'selected' : '';
+            selectHtml += `<option value="${doc.id}" data-nome="${escapeHtml(doc.nome)}" ${selected}>${escapeHtml(doc.nome)}</option>`;
+        });
+        selectHtml += '</select>';
+        
+        div.innerHTML = `
+            <div class="reenvio-arquivo-info">
+                <span class="reenvio-arquivo-nome">📄 ${escapeHtml(item.file.name)} (${(item.file.size/1024).toFixed(1)} KB)</span>
+                ${selectHtml}
+            </div>
+            <button type="button" class="btn-remove-arquivo" onclick="removerArquivoReenvio(${index})">✕</button>
+        `;
+        container.appendChild(div);
+    });
+    
+    if (reenvioArquivos.length === 0) {
+        container.innerHTML = '<div class="text-muted text-center" style="padding: 10px;">Nenhum arquivo selecionado</div>';
+    }
+}
+
+// Mudar o tipo do documento no reenvio
+function mudarTipoReenvio(select) {
+    const index = parseInt(select.getAttribute('data-index'));
+    const selectedOption = select.options[select.selectedIndex];
+    const tipoDocumentoId = select.value;
+    const tipoDocumentoNome = selectedOption ? selectedOption.getAttribute('data-nome') : '';
+    
+    if (reenvioArquivos[index]) {
+        reenvioArquivos[index].tipoDocumentoId = tipoDocumentoId;
+        reenvioArquivos[index].tipoDocumentoNome = tipoDocumentoNome;
+    }
+    sincronizarFormReenvio();
+}
+
+// Remover arquivo do reenvio
+function removerArquivoReenvio(index) {
+    reenvioArquivos = reenvioArquivos.filter((_, i) => i !== index);
+    atualizarListaReenvio();
+    sincronizarFormReenvio();
+}
+
+// Sincronizar o formulário com os dados atuais
+function sincronizarFormReenvio() {
+    const form = document.getElementById('formReenvio');
+    if (!form) return;
+    
+    // Remove inputs hidden antigos
+    const oldInputs = form.querySelectorAll('.hidden-tipo-input');
+    oldInputs.forEach(input => input.remove());
+    
+    // Cria novo DataTransfer para o input file
+    const dt = new DataTransfer();
+    reenvioArquivos.forEach(item => {
+        dt.items.add(item.file);
+    });
+    
+    const fileInput = document.getElementById('fileInputReenvio');
+    if (fileInput) fileInput.files = dt.files;
+    
+    // Adiciona inputs hidden com os tipos
+    reenvioArquivos.forEach((item, i) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = `tipos_anexo[${i}]`;
+        input.value = item.tipoDocumentoId || 'outros';
+        input.className = 'hidden-tipo-input';
+        form.appendChild(input);
+    });
+    
+    console.log('Formulário sincronizado:', reenvioArquivos.length, 'arquivo(s)');
+}
+
+// Funções do modal
+function abrirModalRejeicao(anexoId) {
+    anexoIdAtual = anexoId;
+    const modal = document.getElementById('modalRejeitar');
+    const form = document.getElementById('formRejeitar');
+    const documentoId = {{ $documento->id }};
+    form.action = `/documentos/${documentoId}/anexos/${anexoId}/validar`;
+    modal.style.display = 'flex';
+}
+
+function fecharModalRejeicao() {
+    document.getElementById('modalRejeitar').style.display = 'none';
+    document.getElementById('motivoRecusa').value = '';
+    anexoIdAtual = null;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    carregarDocumentos();
+    
+    // Fechar modal ao clicar fora
+    document.getElementById('modalRejeitar')?.addEventListener('click', function(e) {
+        if (e.target === this) fecharModalRejeicao();
+    });
+});
+</script>
 @endpush
