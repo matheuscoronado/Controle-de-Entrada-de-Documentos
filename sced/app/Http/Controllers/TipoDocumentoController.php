@@ -39,12 +39,6 @@ class TipoDocumentoController extends Controller
             'cargos_responsaveis.*'   => 'in:N1,N2,N3',
             'documentos_necessarios'  => 'nullable|array',
             'documentos_necessarios.*'=> 'exists:documento_tipos,id',
-        ], [
-            'nome.required'               => 'O nome do serviço é obrigatório.',
-            'nome.unique'                 => 'Já existe um serviço com este nome.',
-            'nome.max'                    => 'O nome não pode ultrapassar 100 caracteres.',
-            'cargos_responsaveis.*.in'    => 'Cargo inválido. Use N1, N2 ou N3.',
-            'documentos_necessarios.*.exists' => 'Um ou mais documentos selecionados não existem.',
         ]);
 
         $tipo = TipoDocumento::create([
@@ -55,15 +49,10 @@ class TipoDocumentoController extends Controller
             'status'                  => 'ativo',
         ]);
 
-        // Vincula documentos necessários (pivot)
+        // Vincula os documentos selecionados
         if (!empty($data['documentos_necessarios'])) {
             $tipo->documentosTipo()->sync($data['documentos_necessarios']);
         }
-
-        LogAuditoria::registrar('CADASTRO_SERVICO', 'tipo_documentos', $tipo->id, [
-            'modulo'            => 'servicos',
-            'descricao_legivel' => "Serviço '{$tipo->nome}' cadastrado.",
-        ]);
 
         return redirect()->route('tipos.index')
             ->with('success', "Serviço \"{$tipo->nome}\" cadastrado com sucesso!");
@@ -91,25 +80,10 @@ class TipoDocumentoController extends Controller
             'documentos_necessarios'  => 'nullable|array',
             'documentos_necessarios.*'=> 'exists:documento_tipos,id',
             'status'                  => 'required|in:ativo,inativo',
-        ], [
-            'nome.required'               => 'O nome do serviço é obrigatório.',
-            'nome.unique'                 => 'Já existe um serviço com este nome.',
-            'cargos_responsaveis.*.in'    => 'Cargo inválido. Use N1, N2 ou N3.',
-            'documentos_necessarios.*.exists' => 'Um ou mais documentos selecionados não existem.',
         ]);
 
         if ($data['status'] === 'inativo' && $tipo->documentos()->exists()) {
             return back()->with('error', 'Não é possível desativar um serviço com processos vinculados.');
-        }
-
-        // Captura campos alterados para o log
-        $alterados = [];
-        foreach (['nome', 'descricao', 'departamento_destino_id', 'status'] as $campo) {
-            $novo  = $data[$campo] ?? null;
-            $atual = $tipo->$campo;
-            if ((string) $atual !== (string) $novo) {
-                $alterados[$campo] = ['de' => $atual, 'para' => $novo];
-            }
         }
 
         $tipo->update([
@@ -120,14 +94,8 @@ class TipoDocumentoController extends Controller
             'status'                  => $data['status'],
         ]);
 
-        // Sincroniza documentos necessários (pivot)
+        // Sincroniza documentos
         $tipo->documentosTipo()->sync($data['documentos_necessarios'] ?? []);
-
-        LogAuditoria::registrar('ATUALIZAR_SERVICO', 'tipo_documentos', $tipo->id, [
-            'modulo'            => 'servicos',
-            'campos_alterados'  => $alterados,
-            'descricao_legivel' => "Serviço '{$tipo->nome}' atualizado. Campos: " . implode(', ', array_keys($alterados)),
-        ]);
 
         return redirect()->route('tipos.index')
             ->with('success', "Serviço \"{$tipo->nome}\" atualizado!");
