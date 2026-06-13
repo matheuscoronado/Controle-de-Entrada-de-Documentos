@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/DocumentoTipoController.php
 
 namespace App\Http\Controllers;
 
@@ -40,21 +39,29 @@ class DocumentoTipoController extends Controller
             ->with('success', "Documento \"{$doc->nome}\" cadastrado com sucesso!");
     }
 
-    public function edit(DocumentoTipo $documentoTipo)
+    public function edit($id)
     {
+        $documentoTipo = DocumentoTipo::findOrFail($id);
         return view('admin.documentos.edit', compact('documentoTipo'));
     }
 
-    public function update(Request $request, DocumentoTipo $documentoTipo)
+    public function update(Request $request, $id)
     {
+        $documentoTipo = DocumentoTipo::findOrFail($id);
+        
         $data = $request->validate([
-            'nome'     => 'required|string|max:100|unique:documento_tipos,nome,' . $documentoTipo->id,
+            'nome'     => 'required|string|max:100|unique:documento_tipos,nome,' . $id,
             'descricao'=> 'required|string|max:500',
             'tipo'     => 'required|in:obrigatorio,opcional',
             'status'   => 'required|in:ativo,inativo',
         ]);
 
         $documentoTipo->update($data);
+
+        LogAuditoria::registrar('ATUALIZAR_DOCUMENTO_TIPO', 'documento_tipos', $documentoTipo->id, [
+            'modulo'            => 'documentos',
+            'descricao_legivel' => "Documento '{$documentoTipo->nome}' atualizado.",
+        ]);
 
         return redirect()->route('documentos-tipo.index')
             ->with('success', "Documento \"{$documentoTipo->nome}\" atualizado!");
