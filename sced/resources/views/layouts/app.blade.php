@@ -1,6 +1,6 @@
 {{-- ============================================================
      resources/views/layouts/app.blade.php
-     Alteração: adicionado link "Cadastro de Documentos" na sidebar (admin)
+     MENU LATERAL - Serviços movido para Administração
      ============================================================ --}}
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -47,14 +47,15 @@
             <span class="nav-icon">➕</span> Novo Processo
         </a>
 
+        {{-- ADMIN ──────────────────────────────────────────── --}}
+        @if(auth()->user()->isAdmin())
+        <div class="nav-section-label">Administração</div>
+
+        {{-- ⭐ SERVIÇOS movido para ADMINISTRAÇÃO ⭐ --}}
         <a href="{{ route('tipos.index') }}"
            class="sidebar-link {{ request()->routeIs('tipos.*') ? 'active' : '' }}">
             <span class="nav-icon">🏷️</span> Serviços
         </a>
-
-        {{-- ADMIN ──────────────────────────────────────────── --}}
-        @if(auth()->user()->isAdmin())
-        <div class="nav-section-label">Administração</div>
 
         <a href="{{ route('documentos-tipo.index') }}"
            class="sidebar-link {{ request()->routeIs('documentos-tipo.*') ? 'active' : '' }}">
@@ -122,7 +123,6 @@
             <div class="topbar-sub">@yield('subtitle', '')</div>
         </div>
         <div class="topbar-actions">
-            {{-- Botão menu mobile --}}
             <button class="btn-secondary-sced d-lg-none"
                     onclick="document.getElementById('sidebar').classList.toggle('open')"
                     style="padding:8px 12px;">☰</button>
@@ -131,7 +131,6 @@
     </div>
 
     <div class="page-body">
-        {{-- Flash messages --}}
         @if(session('success'))
             <div class="alert-sced alert-success">✅ {{ session('success') }}</div>
         @endif
@@ -146,7 +145,6 @@
     </div>
 </div>
 
-{{-- Fechar sidebar ao clicar fora (mobile) --}}
 <script>
 document.addEventListener('click', function(e) {
     const sidebar = document.getElementById('sidebar');
