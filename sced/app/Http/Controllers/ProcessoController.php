@@ -1,6 +1,6 @@
 <?php
 // app/Http/Controllers/ProcessoController.php
-// VERSÃO CORRIGIDA COM VALIDAÇÃO DE ANEXOS
+// VERSÃO COMPLETA COM ABAS (Meus Processos / Processos do Meu Setor)
 
 namespace App\Http\Controllers;
 
@@ -20,38 +20,97 @@ class ProcessoController extends Controller
 {
     public function __construct(private ProcessoService $service) {}
 
-    // ── Listagem ─────────────────────────────────────────────
+    // ── Listagem com Abas ─────────────────────────────────────
 
     public function index(Request $request)
     {
         Gate::authorize('viewAny', Documento::class);
 
-        $query = Documento::with(['tipoDocumento', 'usuarioRegistro', 'atribuidoA'])
+        $user = auth()->user();
+        $tab = $request->input('tab', 'meus');
+        $subtab = $request->input('subtab', 'abri');
+
+        // ── QUERY BASE ─────────────────────────────────────────
+        $baseQuery = Documento::with(['tipoDocumento', 'usuarioRegistro', 'atribuidoA'])
             ->withCount('anexos');
 
+        // Filtros comuns
         if ($request->protocolo)
-            $query->where('numero_protocolo', 'like', '%'.$request->protocolo.'%');
+            $baseQuery->where('numero_protocolo', 'like', '%' . $request->protocolo . '%');
         if ($request->remetente)
-            $query->where('remetente', 'like', '%'.$request->remetente.'%');
+            $baseQuery->where('remetente', 'like', '%' . $request->remetente . '%');
         if ($request->tipo_documento_id)
-            $query->where('tipo_documento_id', $request->tipo_documento_id);
+            $baseQuery->where('tipo_documento_id', $request->tipo_documento_id);
         if ($request->status)
-            $query->where('status', $request->status);
+            $baseQuery->where('status', $request->status);
         if ($request->data_inicio && $request->data_fim)
-            $query->whereBetween('data_recebimento', [$request->data_inicio, $request->data_fim]);
+            $baseQuery->whereBetween('created_at', [$request->data_inicio, $request->data_fim]);
 
-        $user = auth()->user();
-        if (!(method_exists($user, 'isAdmin') && $user->isAdmin())) {
-            $query->where(function ($q) {
-                $q->where('usuario_registro_id', auth()->id())
-                  ->orWhere('atribuido_a_id', auth()->id());
-            });
+        // ── MEUS PROCESSOS ────────────────────────────────────
+        $meusQuery = clone $baseQuery;
+        $meusQuery->where(function ($q) use ($user) {
+            $q->where('usuario_registro_id', $user->id)
+                ->orWhere('atribuido_a_id', $user->id);
+        });
+
+        // Totais para badges
+        $meusProcessosTotal = $meusQuery->count();
+        $meusProcessosAbertosCount = (clone $meusQuery)->where('usuario_registro_id', $user->id)->count();
+        $meusProcessosAtribuidosCount = (clone $meusQuery)->where('atribuido_a_id', $user->id)->count();
+
+        // Processos que precisam de ação (pendentes devolvidos)
+        $processosAguardandoAcaoCount = (clone $meusQuery)
+            ->where('status', 'pendente')
+            ->where('usuario_registro_id', $user->id)
+            ->count();
+
+        // Processos atribuídos pendentes
+        $meusProcessosAtribuidosPendentes = (clone $meusQuery)
+            ->where('atribuido_a_id', $user->id)
+            ->whereIn('status', ['novo', 'em_analise', 'pendente'])
+            ->count();
+
+        $acoesPendentesCount = $processosAguardandoAcaoCount + $meusProcessosAtribuidosPendentes;
+
+        // Paginação conforme subtab
+        if ($subtab == 'abri') {
+            $meusQuery->where('usuario_registro_id', $user->id);
+        } elseif ($subtab == 'atribuidos') {
+            $meusQuery->where('atribuido_a_id', $user->id);
         }
 
-        $documentos = $query->orderBy('created_at', 'desc')->paginate(15);
-        $tipos      = TipoDocumento::where('status', 'ativo')->get();
+        $processos = $meusQuery->orderBy('created_at', 'desc')->paginate(15);
+        $processos->appends(['tab' => 'meus', 'subtab' => $subtab] + $request->all());
 
-        return view('processos.index', compact('documentos', 'tipos'));
+        // ── PROCESSOS DO MEU SETOR ────────────────────────────
+        $setorQuery = clone $baseQuery;
+        $setorQuery->where('departamento_destino_id', $user->departamento_id);
+
+        $setorProcessosTotal = $setorQuery->count();
+        $setorProcessosNovos = (clone $setorQuery)->where('status', 'novo')->whereNull('atribuido_a_id')->count();
+
+        $setorProcessos = $setorQuery->orderBy('created_at', 'desc')->paginate(15);
+        $setorProcessos->appends(['tab' => 'setor'] + $request->all());
+
+        $tipos = TipoDocumento::where('status', 'ativo')->get();
+
+        // Variável para a view
+        $processosLista = $tab == 'meus' ? $processos : $setorProcessos;
+
+        return view('processos.index', compact(
+            'processosLista',
+            'processos',
+            'setorProcessos',
+            'meusProcessosTotal',
+            'meusProcessosAbertosCount',
+            'meusProcessosAtribuidosCount',
+            'setorProcessosTotal',
+            'setorProcessosNovos',
+            'tipos',
+            'processosAguardandoAcaoCount',
+            'meusProcessosAtribuidosPendentes',
+            'acoesPendentesCount'
+        ));
     }
 
     // ── Criar ────────────────────────────────────────────────
@@ -62,15 +121,11 @@ class ProcessoController extends Controller
         return view('processos.create');
     }
 
-    /**
-     * Store a newly created process in storage.
-     */
     public function store(Request $request): RedirectResponse
     {
         Gate::authorize('create', Documento::class);
 
         try {
-            // Validação básica
             $data = $request->validate([
                 'tipo_documento_id'       => 'required|exists:tipo_documentos,id',
                 'remetente'               => 'required|string|max:255',
@@ -81,21 +136,18 @@ class ProcessoController extends Controller
                 'anexos'                  => 'nullable|array',
                 'anexos.*'                => 'file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
                 'tipos_anexo'             => 'nullable|array',
-                // 🔧 CORREÇÃO: Aceita qualquer string (IDs dos documentos)
                 'tipos_anexo.*'           => 'nullable|string',
             ]);
 
             Log::info('Iniciando criação do processo', $data);
 
-            // 🔧 MAPEAMENTO: Converte ID do documento para o tipo_anexo correto
+            // Mapeamento de IDs para tipos de anexo
             $tiposAnexoMap = [];
             if ($request->has('tipos_anexo')) {
                 foreach ($request->tipos_anexo as $index => $value) {
                     if (!empty($value)) {
-                        // Tenta encontrar o documento pelo ID
                         $documento = DocumentoTipo::find($value);
                         if ($documento) {
-                            // Mapeia nome do documento para o tipo_anexo
                             $mapa = [
                                 'RG' => 'rg',
                                 'CPF' => 'cpf',
@@ -107,7 +159,6 @@ class ProcessoController extends Controller
                                 'Laudo' => 'laudo',
                             ];
                             $tiposAnexoMap[$index] = $mapa[$documento->nome] ?? 'outros';
-                            Log::info("Mapeado documento '{$documento->nome}' para tipo '{$tiposAnexoMap[$index]}'");
                         } else {
                             $tiposAnexoMap[$index] = 'outros';
                         }
@@ -117,7 +168,6 @@ class ProcessoController extends Controller
                 }
             }
 
-            // Cria o processo
             $documento = Documento::create([
                 'numero_protocolo'        => Documento::gerarProtocolo(),
                 'tipo_documento_id'       => $data['tipo_documento_id'],
@@ -133,7 +183,6 @@ class ProcessoController extends Controller
 
             Log::info('Processo criado', ['id' => $documento->id, 'protocolo' => $documento->numero_protocolo]);
 
-            // Registra histórico
             \App\Models\HistoricoMovimentacao::create([
                 'documento_id' => $documento->id,
                 'usuario_id'   => auth()->id(),
@@ -142,53 +191,45 @@ class ProcessoController extends Controller
                 'observacoes'  => 'Processo aberto no sistema.',
             ]);
 
-            // Salva os anexos
             if ($request->hasFile('anexos')) {
                 foreach ($request->file('anexos') as $i => $file) {
                     $caminho = $file->store('anexos', 'public');
-                    $tipoAnexo = $tiposAnexoMap[$i] ?? 'outros';
-                    
                     \App\Models\ArquivoAnexo::create([
                         'documento_id'    => $documento->id,
                         'usuario_id'      => auth()->id(),
-                        'tipo_anexo'      => $tipoAnexo,
-                        'status_validacao'=> 'pendente',
+                        'tipo_anexo'      => $tiposAnexoMap[$i] ?? 'outros',
+                        'status_validacao' => 'pendente',
                         'nome_arquivo'    => $file->getClientOriginalName(),
                         'caminho_arquivo' => $caminho,
                         'tipo_mime'       => $file->getMimeType(),
                         'tamanho_bytes'   => $file->getSize(),
                     ]);
-                    
-                    Log::info("Anexo salvo: {$file->getClientOriginalName()} como tipo '{$tipoAnexo}'");
                 }
             }
 
-            // Registra log de auditoria
             \App\Models\LogAuditoria::registrar('ABRIR_PROCESSO', 'documentos', $documento->id, [
                 'modulo'           => 'processos',
                 'status_novo'      => 'novo',
-                'descricao_legivel'=> "Processo {$documento->numero_protocolo} criado por ".auth()->user()->nome.'.',
+                'descricao_legivel' => "Processo {$documento->numero_protocolo} criado por " . auth()->user()->nome . '.',
             ]);
 
             Log::info('Processo finalizado com sucesso', ['protocolo' => $documento->numero_protocolo]);
 
             return redirect()->route('documentos.show', $documento)
-                ->with('success', 'Processo aberto! Protocolo: '.$documento->numero_protocolo);
-
+                ->with('success', 'Processo aberto! Protocolo: ' . $documento->numero_protocolo);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Erro de validação: ' . json_encode($e->errors()));
             return back()->withErrors($e->errors())->withInput();
-            
         } catch (\Exception $e) {
             Log::error('Erro ao criar processo: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return back()->with('error', 'Erro ao criar processo: ' . $e->getMessage())->withInput();
         }
     }
 
-    // ── JSON para Autocomplete (CORRIGIDO) ───────────────────
+    // ── JSON para Autocomplete ─────────────────────────────────
 
     public function tiposJson(Request $request): JsonResponse
     {
@@ -251,9 +292,13 @@ class ProcessoController extends Controller
         Gate::authorize('view', $documento);
 
         $documento->load([
-            'tipoDocumento', 'usuarioRegistro', 'atribuidoA',
-            'historicos.usuario', 'historicos.usuarioDestino',
-            'anexos.usuario', 'anexos.validadoPor',
+            'tipoDocumento',
+            'usuarioRegistro',
+            'atribuidoA',
+            'historicos.usuario',
+            'historicos.usuarioDestino',
+            'anexos.usuario',
+            'anexos.validadoPor',
         ]);
 
         $acoes = $this->service->acoesDisponiveis($documento, auth()->user());
@@ -276,7 +321,7 @@ class ProcessoController extends Controller
         $data = $request->validate([
             'remetente'    => 'required|string|max:255',
             'descricao'    => 'nullable|string|max:2000',
-            'setor_destino'=> 'required|string|max:255',
+            'setor_destino' => 'required|string|max:255',
         ]);
 
         try {
@@ -321,11 +366,12 @@ class ProcessoController extends Controller
             'anexos'       => 'nullable|array',
             'anexos.*'     => 'file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
             'tipos_anexo'  => 'nullable|array',
-            'tipos_anexo.*'=> 'nullable|string',
+            'tipos_anexo.*' => 'nullable|string',
         ]);
         try {
             $this->service->retornar(
-                $documento, auth()->user(),
+                $documento,
+                auth()->user(),
                 $request->observacoes,
                 $request->file('anexos', []),
                 $request->input('tipos_anexo', [])
@@ -381,8 +427,10 @@ class ProcessoController extends Controller
         ]);
         try {
             $this->service->alterarStatusManual(
-                $documento, auth()->user(),
-                $request->status, $request->observacoes
+                $documento,
+                auth()->user(),
+                $request->status,
+                $request->observacoes
             );
             return back()->with('success', 'Status alterado manualmente.');
         } catch (StatusTransitionException $e) {
@@ -399,31 +447,62 @@ class ProcessoController extends Controller
         ]);
         try {
             $this->service->substituirAnexo(
-                $documento, auth()->user(), $anexo,
+                $documento,
+                auth()->user(),
+                $anexo,
                 $request->file('arquivo'),
                 $request->input('tipo_anexo', 'outros')
             );
             return back()->with('success', 'Arquivo substituído com sucesso.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Erro ao substituir arquivo: '.$e->getMessage());
+            return back()->with('error', 'Erro ao substituir arquivo: ' . $e->getMessage());
         }
     }
 
     public function validarAnexo(Request $request, Documento $documento, ArquivoAnexo $anexo): RedirectResponse
     {
         Gate::authorize('validarAnexo', $documento);
+
         $request->validate([
             'status_validacao' => 'required|in:aprovado,rejeitado',
             'observacao'       => 'nullable|string|max:500',
         ]);
+
         try {
+            // 🔧 Verificação adicional antes de chamar o service
+            if ($anexo->documento_id !== $documento->id) {
+                throw new \InvalidArgumentException(
+                    "O anexo não pertence a este documento. " .
+                        "Anexo ID: {$anexo->id} (Documento ID: {$anexo->documento_id}) - " .
+                        "Processo ID: {$documento->id}"
+                );
+            }
+
             $this->service->validarAnexo(
-                $documento, auth()->user(), $anexo,
-                $request->status_validacao, $request->observacao
+                $documento,
+                auth()->user(),
+                $anexo,
+                $request->status_validacao,
+                $request->observacao
             );
-            return back()->with('success', 'Validação do anexo registrada.');
+
+            $mensagem = $request->status_validacao === 'aprovado'
+                ? 'Documento aprovado com sucesso!'
+                : 'Documento recusado. Motivo registrado.';
+
+            return back()->with('success', $mensagem);
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
         } catch (StatusTransitionException $e) {
             return back()->with('error', $e->getMessage());
+        } catch (\Exception $e) {
+            \Log::error('Erro ao validar anexo: ' . $e->getMessage(), [
+                'documento_id' => $documento->id,
+                'anexo_id' => $anexo->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->with('error', 'Erro ao validar documento: ' . $e->getMessage());
         }
     }
 }
