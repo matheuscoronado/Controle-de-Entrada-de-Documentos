@@ -1,6 +1,6 @@
 {{-- ============================================================
      resources/views/admin/logs/show.blade.php
-     Detalhes de um Registro de Auditoria
+     DETALHES DO LOG DE AUDITORIA
      ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Detalhe do Log #' . $log->id)
@@ -11,147 +11,290 @@
 @endsection
 
 @section('content')
-<div class="row">
 
-    {{-- Coluna principal --}}
+<style>
+    .detail-card {
+        background: var(--branco);
+        border-radius: 16px;
+        border: 1px solid var(--cinza-200);
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    .detail-header {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, var(--azul-escuro) 0%, var(--azul-medio) 100%);
+        color: white;
+    }
+    .detail-header h2 {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    .detail-header p {
+        font-size: 12px;
+        opacity: 0.8;
+        margin: 0;
+    }
+    .detail-body {
+        padding: 24px;
+    }
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .info-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--cinza-400);
+    }
+    .info-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--cinza-800);
+        font-family: monospace;
+    }
+    .status-change {
+        background: var(--cinza-100);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 30px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+    .status-box {
+        text-align: center;
+        padding: 15px 25px;
+        background: white;
+        border-radius: 12px;
+        min-width: 150px;
+    }
+    .status-box .label {
+        font-size: 11px;
+        color: var(--cinza-400);
+        margin-bottom: 8px;
+    }
+    .status-box .value {
+        font-size: 16px;
+        font-weight: 700;
+    }
+    .status-box.anterior .value { color: #92400e; }
+    .status-box.novo .value { color: #059669; }
+    
+    .campos-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .campos-table th {
+        background: var(--cinza-100);
+        padding: 12px;
+        font-size: 12px;
+        text-align: left;
+    }
+    .campos-table td {
+        padding: 12px;
+        border-bottom: 1px solid var(--cinza-200);
+        font-size: 13px;
+    }
+    .valor-antigo {
+        color: #dc2626;
+        font-family: monospace;
+    }
+    .valor-novo {
+        color: #059669;
+        font-family: monospace;
+        font-weight: 600;
+    }
+    
+    .user-card {
+        background: var(--cinza-100);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .user-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: var(--azul-claro);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 700;
+    }
+    
+    .upload-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        background: var(--cinza-100);
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+</style>
+
+<div class="row">
     <div class="col-lg-8">
 
         {{-- Cabeçalho --}}
-        <div class="card-sced mb-4">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-                <div>
-                    <div style="font-size:20px;font-weight:700;margin-bottom:4px;">
-                        {{ $log->acao }}
-                    </div>
-                    <div style="font-size:13px;color:var(--cinza-400);">
-                        Registro #{{ $log->id }} — {{ $log->data_hora->format('d/m/Y \à\s H:i:s') }}
+        <div class="detail-card">
+            <div class="detail-header">
+                <h2>{{ $log->acao }}</h2>
+                <p>Registro #{{ $log->id }} — {{ $log->data_hora->format('d/m/Y \à\s H:i:s') }}</p>
+            </div>
+            <div class="detail-body">
+
+                {{-- Descrição legível --}}
+                @if($log->descricao_legivel)
+                <div style="background: var(--cinza-100); border-radius: 12px; padding: 16px; margin-bottom: 24px; border-left: 3px solid var(--azul-claro);">
+                    <div style="font-size: 14px; color: var(--cinza-600);">
+                        {{ $log->descricao_legivel }}
                     </div>
                 </div>
-                @if($log->modulo)
-                    <span style="background:var(--azul-claro);color:#fff;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;">
-                        {{ ucfirst($log->modulo) }}
-                    </span>
                 @endif
-            </div>
 
-            @if($log->descricao_legivel)
-            <div style="margin-top:16px;padding:14px;background:var(--cinza-100);border-radius:var(--radius-sm);font-size:14px;color:var(--cinza-600);border-left:3px solid var(--azul-claro);">
-                {{ $log->descricao_legivel }}
-            </div>
-            @endif
-        </div>
-
-        {{-- Alteração de Status --}}
-        @if($log->status_anterior || $log->status_novo)
-        <div class="card-sced mb-4">
-            <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--cinza-400);margin-bottom:16px;">
-                🔄 Alteração de Status
-            </div>
-            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-                <div style="text-align:center;">
-                    <div style="font-size:11px;color:var(--cinza-400);margin-bottom:6px;font-weight:600;">ANTERIOR</div>
-                    <span style="background:#fef3c7;color:#92400e;padding:8px 18px;border-radius:8px;font-size:14px;font-weight:700;display:inline-block;">
-                        {{ $log->status_anterior ?? '—' }}
-                    </span>
+                {{-- Informações básicas --}}
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Módulo</span>
+                        <span class="info-value">{{ ucfirst($log->modulo ?? '—') }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Tabela Afetada</span>
+                        <span class="info-value">{{ $log->tabela_afetada ?? '—' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">ID do Registro</span>
+                        <span class="info-value">{{ $log->registro_id ?? '—' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">IP de Origem</span>
+                        <span class="info-value">{{ $log->ip_origem ?? '—' }}</span>
+                    </div>
                 </div>
-                <div style="font-size:24px;color:var(--cinza-400);">→</div>
-                <div style="text-align:center;">
-                    <div style="font-size:11px;color:var(--cinza-400);margin-bottom:6px;font-weight:600;">NOVO</div>
-                    <span style="background:#d1fae5;color:#065f46;padding:8px 18px;border-radius:8px;font-size:14px;font-weight:700;display:inline-block;">
-                        {{ $log->status_novo ?? '—' }}
-                    </span>
-                </div>
-            </div>
-        </div>
-        @endif
 
-        {{-- Campos Alterados --}}
-        @if($log->campos_alterados && count($log->campos_alterados) > 0)
-        <div class="card-sced mb-4">
-            <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--cinza-400);margin-bottom:16px;">
-                📝 Campos Alterados
-            </div>
-            <table class="tabela-sced">
-                <thead>
-                    <tr>
-                        <th>Campo</th>
-                        <th>Valor Anterior</th>
-                        <th>Novo Valor</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($log->campos_alterados as $campo => $vals)
-                    <tr>
-                        <td style="font-weight:600;font-family:'JetBrains Mono',monospace;font-size:12px;">{{ $campo }}</td>
-                        <td style="color:var(--vermelho);font-size:13px;">{{ $vals['de'] ?? '—' }}</td>
-                        <td style="color:var(--verde);font-size:13px;font-weight:600;">{{ $vals['para'] ?? '—' }}</td>
-                    </tr>
+                {{-- Alteração de Status --}}
+                @if($log->status_anterior || $log->status_novo)
+                <div class="status-change">
+                    <div class="status-box anterior">
+                        <div class="label">STATUS ANTERIOR</div>
+                        <div class="value">{{ $log->status_anterior ?? '—' }}</div>
+                    </div>
+                    <div style="font-size: 28px; color: var(--cinza-400);">→</div>
+                    <div class="status-box novo">
+                        <div class="label">NOVO STATUS</div>
+                        <div class="value">{{ $log->status_novo ?? '—' }}</div>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Campos Alterados --}}
+                @if($log->campos_alterados && count($log->campos_alterados) > 0)
+                <div style="margin-top: 24px;">
+                    <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 16px;">📝 Campos Alterados</h4>
+                    <div class="table-responsive">
+                        <table class="campos-table">
+                            <thead>
+                                <tr>
+                                    <th>Campo</th>
+                                    <th>Valor Anterior</th>
+                                    <th>Novo Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($log->campos_alterados as $campo => $vals)
+                                <tr>
+                                    <td style="font-weight: 600; font-family: monospace;">{{ $campo }}</td>
+                                    <td class="valor-antigo">{{ $vals['de'] ?? '—' }}</td>
+                                    <td class="valor-novo">{{ $vals['para'] ?? '—' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Uploads --}}
+                @if($log->uploads_realizados && count($log->uploads_realizados) > 0)
+                <div style="margin-top: 24px;">
+                    <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 16px;">📎 Uploads Realizados</h4>
+                    @foreach($log->uploads_realizados as $upload)
+                    <div class="upload-item">
+                        <span style="font-size: 20px;">📄</span>
+                        <span>{{ $upload }}</span>
+                    </div>
                     @endforeach
-                </tbody>
-            </table>
-        </div>
-        @endif
+                </div>
+                @endif
 
-        {{-- Uploads --}}
-        @if($log->uploads_realizados && count($log->uploads_realizados) > 0)
-        <div class="card-sced mb-4">
-            <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--cinza-400);margin-bottom:16px;">
-                📎 Uploads Realizados
             </div>
-            @foreach($log->uploads_realizados as $upload)
-            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--cinza-100);border-radius:var(--radius-sm);margin-bottom:8px;">
-                <span style="font-size:20px;">📄</span>
-                <span style="font-size:13px;font-weight:500;">{{ $upload }}</span>
-            </div>
-            @endforeach
         </div>
-        @endif
 
     </div>
 
-    {{-- Coluna lateral — contexto --}}
     <div class="col-lg-4">
-        <div class="card-sced mb-4">
-            <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--cinza-400);margin-bottom:16px;">
-                👤 Usuário Responsável
-            </div>
 
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-                <div style="width:44px;height:44px;border-radius:50%;background:var(--azul-claro);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;">
-                    {{ strtoupper(substr($log->usuario->nome ?? '?', 0, 1)) }}
-                </div>
-                <div>
-                    <div style="font-weight:600;font-size:15px;">{{ $log->usuario->nome ?? '—' }}</div>
-                    <div style="font-size:12px;color:var(--cinza-400);">{{ $log->usuario->label_perfil ?? '' }}</div>
+        {{-- Card do Usuário --}}
+        <div class="detail-card">
+            <div class="detail-header" style="background: var(--cinza-800);">
+                <h2 style="font-size: 16px;">👤 Usuário Responsável</h2>
+            </div>
+            <div class="detail-body">
+                <div class="user-card">
+                    <div class="user-avatar">
+                        {{ strtoupper(substr($log->usuario->nome ?? '?', 0, 1)) }}
+                    </div>
+                    <div>
+                        <div style="font-weight: 700; font-size: 16px;">{{ $log->usuario->nome ?? '—' }}</div>
+                        <div style="font-size: 12px; color: var(--cinza-400);">{{ $log->usuario->label_perfil ?? '' }}</div>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <div style="display:flex;flex-direction:column;gap:10px;">
-                <div>
-                    <div style="font-size:11px;font-weight:600;color:var(--cinza-400);margin-bottom:2px;">TABELA AFETADA</div>
-                    <div style="font-family:'JetBrains Mono',monospace;font-size:13px;">{{ $log->tabela_afetada ?? '—' }}</div>
+        {{-- Informações técnicas --}}
+        <div class="detail-card">
+            <div class="detail-header" style="background: var(--cinza-800);">
+                <h2 style="font-size: 16px;">ℹ️ Informações Técnicas</h2>
+            </div>
+            <div class="detail-body">
+                <div style="margin-bottom: 15px;">
+                    <div class="info-label">DATA / HORA</div>
+                    <div class="info-value">{{ $log->data_hora->format('d/m/Y H:i:s') }}</div>
                 </div>
-                <div>
-                    <div style="font-size:11px;font-weight:600;color:var(--cinza-400);margin-bottom:2px;">ID DO REGISTRO</div>
-                    <div style="font-family:'JetBrains Mono',monospace;font-size:13px;">{{ $log->registro_id ?? '—' }}</div>
-                </div>
-                <div>
-                    <div style="font-size:11px;font-weight:600;color:var(--cinza-400);margin-bottom:2px;">IP DE ORIGEM</div>
-                    <div style="font-family:'JetBrains Mono',monospace;font-size:13px;">{{ $log->ip_origem ?? '—' }}</div>
-                </div>
-                <div>
-                    <div style="font-size:11px;font-weight:600;color:var(--cinza-400);margin-bottom:2px;">DATA / HORA</div>
-                    <div style="font-size:13px;">{{ $log->data_hora->format('d/m/Y H:i:s') }}</div>
+                <div style="margin-bottom: 15px;">
+                    <div class="info-label">IP DE ORIGEM</div>
+                    <div class="info-value">{{ $log->ip_origem ?? '—' }}</div>
                 </div>
                 @if($log->user_agent)
                 <div>
-                    <div style="font-size:11px;font-weight:600;color:var(--cinza-400);margin-bottom:2px;">NAVEGADOR</div>
-                    <div style="font-size:11px;color:var(--cinza-400);word-break:break-all;">{{ Str::limit($log->user_agent, 80) }}</div>
+                    <div class="info-label">NAVEGADOR</div>
+                    <div class="info-value" style="font-size: 11px; word-break: break-all;">
+                        {{ Str::limit($log->user_agent, 100) }}
+                    </div>
                 </div>
                 @endif
             </div>
         </div>
-    </div>
 
+    </div>
 </div>
+
 @endsection
