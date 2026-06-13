@@ -15,4 +15,9 @@ Route::middleware('auth')->group(function () {
     Route::get('servicos/buscar', [ServicoController::class, 'buscar']);
     Route::get('servicos/{id}/requisitos', [ServicoController::class, 'requisitos']);
 
+    // Buscar todos os documentos cadastrados (para o select)
+    // Buscar todos os documentos cadastrados (para o select)
+    Route::get('documentos/todos', function () {
+        return response()->json(\App\Models\DocumentoTipo::where('status', 'ativo')->orderBy('nome')->get(['id', 'nome', 'tipo']));
+    })->middleware('auth');
 });
