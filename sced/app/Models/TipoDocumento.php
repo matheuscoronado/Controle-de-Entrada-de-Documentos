@@ -12,7 +12,7 @@ class TipoDocumento extends Model
         'descricao',
         'status',
         'departamento_destino_id',
-        'cargos_responsaveis',   // JSON: ['N1','N2','N3']
+        'cargos_responsaveis',
     ];
 
     protected $casts = [
@@ -34,7 +34,7 @@ class TipoDocumento extends Model
     }
 
     /**
-     * Documentos necessários vinculados a este serviço (ex: RG, CPF, Certidão).
+     * Documentos vinculados a este serviço (ex: RG, CPF, Certidão).
      * Tabela pivot: tipo_documento_documento_tipo
      */
     public function documentosTipo()
@@ -76,5 +76,13 @@ class TipoDocumento extends Model
         }
 
         return implode(', ', array_map(fn($c) => $mapa[$c] ?? $c, $cargos));
+    }
+
+    /**
+     * Verifica se o serviço está ativo
+     */
+    public function isAtivo(): bool
+    {
+        return $this->status === 'ativo';
     }
 }
