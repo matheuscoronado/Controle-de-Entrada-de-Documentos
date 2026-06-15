@@ -19,31 +19,38 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ── Processos: Rotas Estáticas (Devem vir ANTES das rotas com {documento}) ──
-    Route::get ('documentos',                  [ProcessoController::class, 'index'])         ->name('documentos.index');
-    Route::get ('documentos/novo',             [ProcessoController::class, 'create'])        ->name('documentos.create');
-    Route::post('documentos',                  [ProcessoController::class, 'store'])         ->name('documentos.store');
+    Route::get('documentos',                  [ProcessoController::class, 'index'])         ->name('documentos.index');
+    Route::get('documentos/novo',             [ProcessoController::class, 'create'])        ->name('documentos.create');
+    Route::post('documentos',                 [ProcessoController::class, 'store'])         ->name('documentos.store');
     
-    // 💡 Endpoints JSON para o Autocomplete Nativo (Sessão Protegida)
-    Route::get ('documentos/tipos-json',       [ProcessoController::class, 'tiposJson'])     ->name('documentos.tipos_json');
-    Route::get ('documentos/{id}/requisitos',  [ProcessoController::class, 'requisitosJson'])->name('documentos.requisitos_json');
+    // ⭐ ROTA PARA BUSCAR TODOS OS DOCUMENTOS CADASTRADOS (para o select no create)
+    Route::get('documentos/cadastrados-json', [ProcessoController::class, 'getDocumentosCadastrados'])->name('documentos.cadastrados-json');
+    
+    // Endpoints JSON para o Autocomplete Nativo
+    Route::get('documentos/tipos-json',       [ProcessoController::class, 'tiposJson'])     ->name('documentos.tipos_json');
+    Route::get('documentos/{id}/requisitos',  [ProcessoController::class, 'requisitosJson'])->name('documentos.requisitos_json');
+
+    // API para buscar usuários para atribuição
+    Route::get('documentos/{processo}/usuarios-atribuicao', [ProcessoController::class, 'getUsuariosParaAtribuir'])->name('documentos.usuarios-atribuicao');
 
     // ── Processos: Transições de Status e Fluxo ──
-    Route::post ('documentos/{documento}/assumir',       [ProcessoController::class, 'assumir'])       ->name('documentos.assumir');
-    Route::post ('documentos/{documento}/devolver',      [ProcessoController::class, 'devolver'])      ->name('documentos.devolver');
-    Route::post ('documentos/{documento}/retornar',      [ProcessoController::class, 'retornar'])      ->name('documentos.retornar');
-    Route::post ('documentos/{documento}/finalizar',     [ProcessoController::class, 'finalizar'])     ->name('documentos.finalizar');
-    Route::post ('documentos/{documento}/desativar',     [ProcessoController::class, 'desativar'])     ->name('documentos.desativar');
-    Route::post ('documentos/{documento}/reabrir',       [ProcessoController::class, 'reabrir'])       ->name('documentos.reabrir');
-    Route::patch('documentos/{documento}/status-manual', [ProcessoController::class, 'statusManual'])  ->name('documentos.status-manual');
+    Route::post('documentos/{documento}/assumir',       [ProcessoController::class, 'assumir'])       ->name('documentos.assumir');
+    Route::post('documentos/{documento}/devolver',      [ProcessoController::class, 'devolver'])      ->name('documentos.devolver');
+    Route::post('documentos/{documento}/retornar',      [ProcessoController::class, 'retornar'])      ->name('documentos.retornar');
+    Route::post('documentos/{documento}/finalizar',     [ProcessoController::class, 'finalizar'])     ->name('documentos.finalizar');
+    Route::post('documentos/{documento}/desativar',     [ProcessoController::class, 'desativar'])     ->name('documentos.desativar');
+    Route::post('documentos/{documento}/reabrir',       [ProcessoController::class, 'reabrir'])       ->name('documentos.reabrir');
+    Route::patch('documentos/{documento}/status-manual', [ProcessoController::class, 'statusManual']) ->name('documentos.status-manual');
+    Route::post('documentos/{documento}/atribuir',      [ProcessoController::class, 'atribuir'])      ->name('documentos.atribuir');
 
     // ── Processos: Gerenciamento de Anexos do Fluxo ──
     Route::post('documentos/{documento}/anexos/{anexo}/substituir', [ProcessoController::class, 'substituirAnexo'])->name('documentos.anexo.substituir');
     Route::post('documentos/{documento}/anexos/{anexo}/validar',    [ProcessoController::class, 'validarAnexo'])   ->name('documentos.anexo.validar');
 
     // ── Processos: CRUD Padrão com Parâmetros Dinâmicos (Por último para evitar conflitos) ──
-    Route::get ('documentos/{documento}',        [ProcessoController::class, 'show'])          ->name('documentos.show');
-    Route::get ('documentos/{documento}/editar', [ProcessoController::class, 'edit'])          ->name('documentos.edit');
-    Route::put ('documentos/{documento}',        [ProcessoController::class, 'update'])        ->name('documentos.update');
+    Route::get('documentos/{documento}',        [ProcessoController::class, 'show'])          ->name('documentos.show');
+    Route::get('documentos/{documento}/editar', [ProcessoController::class, 'edit'])          ->name('documentos.edit');
+    Route::put('documentos/{documento}',        [ProcessoController::class, 'update'])        ->name('documentos.update');
 
     // ── Serviços (Tipos de Documento) ───────────────────────
     Route::resource('tipos', TipoDocumentoController::class)->except(['show', 'destroy']);
@@ -57,9 +64,10 @@ Route::middleware(['auth'])->group(function () {
     // ── Somente Admin ───────────────────────────────────────
     Route::middleware('admin')->group(function () {
         Route::resource('usuarios',       UsuarioController::class);
+        Route::post('usuarios/{usuario}/toggle-status', [UsuarioController::class, 'toggleStatus'])->name('usuarios.toggle-status');
         Route::resource('departamentos', DepartamentoController::class);
         Route::resource('documentos-tipo', DocumentoTipoController::class)->except(['show', 'destroy']);
-        Route::get ('/relatorios',       [RelatorioController::class, 'index'])->name('relatorios.index');
+        Route::get('/relatorios',       [RelatorioController::class, 'index'])->name('relatorios.index');
         Route::post('/relatorios/gerar', [RelatorioController::class, 'gerar']) ->name('relatorios.gerar');
     });
 
