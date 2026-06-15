@@ -90,60 +90,61 @@ O sistema possui um **fluxo hierárquico de aprovação** onde:
 ## Arquitetura do Sistema
 
 O sistema segue a arquitetura **MVC (Model-View-Controller)** do Laravel, com separação clara entre regras de negócio, apresentação e acesso a dados.
+
+```
 sced/
 ├── app/
-│ ├── Http/
-│ │ ├── Controllers/
-│ │ │ ├── ProcessoController.php ← CRUD + transições de status
-│ │ │ ├── DashboardController.php ← KPIs e gráficos
-│ │ │ ├── UsuarioController.php ← CRUD usuários
-│ │ │ ├── TipoDocumentoController.php ← CRUD serviços
-│ │ │ ├── DocumentoTipoController.php ← CRUD documentos
-│ │ │ ├── DepartamentoController.php ← CRUD departamentos
-│ │ │ ├── RelatorioController.php ← Geração PDF
-│ │ │ ├── LogAuditoriaController.php ← Logs de auditoria
-│ │ │ └── Api/ServicoController.php ← Endpoints JSON
-│ │ └── Middleware/
-│ │ ├── AdminMiddleware.php ← Apenas administradores
-│ │ ├── N3Middleware.php ← Apenas N3 e admin
-│ │ └── Authenticate.php
-│ ├── Models/
-│ │ ├── User.php ← Usuários com perfis e cargos
-│ │ ├── Documento.php ← Processos/protocolos
-│ │ ├── TipoDocumento.php ← Serviços
-│ │ ├── DocumentoTipo.php ← Documentos cadastrados
-│ │ ├── Departamento.php ← Departamentos
-│ │ ├── HistoricoMovimentacao.php ← Histórico de ações
-│ │ ├── ArquivoAnexo.php ← Arquivos anexados
-│ │ └── LogAuditoria.php ← Logs de auditoria
-│ ├── Services/
-│ │ └── ProcessoService.php ← Regras de negócio do fluxo
-│ ├── Policies/
-│ │ └── ProcessoPolicy.php ← Controle de permissões
-│ └── Exceptions/
-│ └── StatusTransitionException.php ← Exceções de transição
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── ProcessoController.php       ← CRUD + transições de status
+│   │   │   ├── DashboardController.php      ← KPIs e gráficos
+│   │   │   ├── UsuarioController.php        ← CRUD usuários
+│   │   │   ├── TipoDocumentoController.php  ← CRUD serviços
+│   │   │   ├── DocumentoTipoController.php  ← CRUD documentos
+│   │   │   ├── DepartamentoController.php   ← CRUD departamentos
+│   │   │   ├── RelatorioController.php      ← Geração PDF
+│   │   │   ├── LogAuditoriaController.php   ← Logs de auditoria
+│   │   │   └── Api/ServicoController.php    ← Endpoints JSON
+│   │   └── Middleware/
+│   │       ├── AdminMiddleware.php          ← Apenas administradores
+│   │       ├── N3Middleware.php             ← Apenas N3 e admin
+│   │       └── Authenticate.php
+│   ├── Models/
+│   │   ├── User.php                  ← Usuários com perfis e cargos
+│   │   ├── Documento.php             ← Processos/protocolos
+│   │   ├── TipoDocumento.php         ← Serviços
+│   │   ├── DocumentoTipo.php         ← Documentos cadastrados
+│   │   ├── Departamento.php          ← Departamentos
+│   │   ├── HistoricoMovimentacao.php ← Histórico de ações
+│   │   ├── ArquivoAnexo.php          ← Arquivos anexados
+│   │   └── LogAuditoria.php          ← Logs de auditoria
+│   ├── Services/
+│   │   └── ProcessoService.php       ← Regras de negócio do fluxo
+│   ├── Policies/
+│   │   └── ProcessoPolicy.php        ← Controle de permissões
+│   └── Exceptions/
+│       └── StatusTransitionException.php ← Exceções de transição
 ├── database/
-│ ├── migrations/ ← Estrutura do banco
-│ └── seeders/ ← Dados iniciais
+│   ├── migrations/                   ← Estrutura do banco
+│   └── seeders/                      ← Dados iniciais
 ├── resources/views/
-│ ├── layouts/app.blade.php ← Layout principal
-│ ├── auth/login.blade.php ← Login traduzido
-│ ├── dashboard.blade.php ← KPIs e gráficos
-│ ├── processos/ ← Telas de processos
-│ ├── usuarios/ ← CRUD usuários
-│ ├── departamentos/ ← CRUD departamentos
-│ ├── admin/ ← Área administrativa
-│ │ ├── tipos/ ← CRUD serviços
-│ │ ├── documentos/ ← CRUD documentos
-│ │ └── logs/ ← Logs de auditoria
-│ └── relatorios/ ← Geração de relatórios
+│   ├── layouts/app.blade.php         ← Layout principal
+│   ├── auth/login.blade.php          ← Login traduzido
+│   ├── dashboard.blade.php           ← KPIs e gráficos
+│   ├── processos/                    ← Telas de processos
+│   ├── usuarios/                     ← CRUD usuários
+│   ├── departamentos/                ← CRUD departamentos
+│   ├── admin/                        ← Área administrativa
+│   │   ├── tipos/                    ← CRUD serviços
+│   │   ├── documentos/               ← CRUD documentos
+│   │   └── logs/                     ← Logs de auditoria
+│   └── relatorios/                   ← Geração de relatórios
 ├── public/css/
-│ └── sced.css ← Estilos customizados
+│   └── sced.css                      ← Estilos customizados
 └── routes/
-├── web.php ← Rotas web
-└── api.php ← Rotas API (JSON)
-
-text
+    ├── web.php                       ← Rotas web
+    └── api.php                       ← Rotas API (JSON)
+```
 
 ---
 
@@ -164,10 +165,11 @@ O sistema utiliza as seguintes tabelas principais:
 | `log_auditorias` | Log de auditoria de ações do sistema |
 
 ### Formato do protocolo
+
+```
 ANO-SEQUENCIAL (6 dígitos)
 Exemplo: 2026-000001
-
-text
+```
 
 O sequencial é reiniciado a cada ano.
 
@@ -209,47 +211,34 @@ O sequencial é reiniciado a cada ano.
 ## Hierarquia e Fluxo de Processos
 
 ### Fluxo Completo
+
+```
 N1 abre processo com documentos
-↓
-
+        ↓
 Processo fica NOVO no setor destino
-↓
-
+        ↓
 N3 atribui para N2 (ou N1) do setor
-OU
+        OU
 N2 assume diretamente da fila
-↓
-
+        ↓
 Responsável analisa documentos:
-
-Aprova ✅ → documento validado
-
-Recusa ❌ → solicita correção com motivo
-↓
-
+  - Aprova ✅ → documento validado
+  - Recusa ❌ → solicita correção com motivo
+        ↓
 Se todos documentos aprovados:
-
-Responsável FINALIZA processo
-↓
+  → Responsável FINALIZA processo
 
 Se houver recusa:
-
-Responsável DEVOLVE processo
-
-Processo fica PENDENTE
-
-Solicitante recebe notificação
-↓
-
+  → Responsável DEVOLVE processo
+  → Processo fica PENDENTE
+  → Solicitante recebe notificação
+        ↓
 Solicitante corrige e REENVIA
-↓
-
+        ↓
 Processo retorna para o MESMO responsável
-↓
-
+        ↓
 Responsável continua análise
-
-text
+```
 
 ### Regras de Atribuição
 
@@ -349,16 +338,27 @@ npm run build
 
 # 10. Iniciar servidor
 php artisan serve
-Login padrão
-Perfil	E-mail	Senha
-Administrador	admin@sced.com	admin123
-Supervisor N3	n3@sced.com	n3123
-Analista N2	n2@sced.com	n2123
-Atendimento N1	n1@sced.com	n1123
-Licença
+```
+
+### Acessando o sistema
+
+1. Após iniciar o servidor, acesse `http://localhost:8000` no navegador.
+2. Você será redirecionado para a tela de **Login**.
+3. Informe o e-mail e a senha de um usuário previamente cadastrado (criados via seeder ou diretamente no cadastro de usuários por um administrador).
+4. Após autenticado, o sistema redireciona automaticamente para o **Dashboard**, exibindo os KPIs e funcionalidades de acordo com o perfil (N1, N2, N3 ou Administrador) do usuário logado.
+
+> ⚠️ As credenciais de acesso (usuários e senhas) não são públicas e devem ser solicitadas ao administrador do sistema ou definidas localmente no ambiente de desenvolvimento via seeders.
+
+---
+
+## Licença
+
 Este projeto foi desenvolvido para fins acadêmicos e organizacionais internos.
 
-Desenvolvedores
+---
+
+## Desenvolvedores
+
 Desenvolvido por Abner Cardoso, Guilherme Tófoli e Matheus Coronado
 
 SCED © 2026 — Sistema de Controle de Entrada de Documentos
