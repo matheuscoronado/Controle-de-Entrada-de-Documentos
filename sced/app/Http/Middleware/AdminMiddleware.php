@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Middleware;
 
 use Closure;
@@ -13,14 +14,15 @@ class AdminMiddleware
             return redirect()->route('login');
         }
         
-        // Verifica se o perfil é admin (ajuste conforme seu sistema)
         $user = auth()->user();
         
-        // Seu sistema usa 'perfil' ou 'tipo' ou 'role'?
-        if ($user->perfil !== 'administrador' && $user->perfil !== 'admin') {
-            abort(403, 'Acesso negado. Apenas administradores.');
+        // Verifica se o usuário é administrador
+        // Aceita: perfil 'administrador' ou cargo 'admin'
+        if ($user->perfil === 'administrador' || $user->perfil === 'admin' || $user->cargo === 'admin') {
+            return $next($request);
         }
         
-        return $next($request);
+        // Se não for admin, bloqueia
+        abort(403, 'Acesso negado. Apenas administradores podem acessar esta área.');
     }
 }
