@@ -1,10 +1,10 @@
 {{-- ============================================================
      resources/views/usuarios/create.blade.php
-     CRIAR USUÁRIO - COM PERMISSÃO PARA ASSUMIR PROCESSOS
+     CRIAR USUÁRIO
      ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Novo Usuário')
-@section('subtitle', 'Cadastre um novo usuário no sistema')
+@section('subtitle', 'Cadastrar novo usuário no sistema')
 
 @section('topbar-actions')
     <a href="{{ route('usuarios.index') }}" class="btn-secondary-sced">← Voltar</a>
@@ -87,7 +87,7 @@
 
         <div class="form-card">
             <div class="form-section-title">
-                👤 Dados do Novo Usuário
+                ✏️ Cadastrar Novo Usuário
             </div>
 
             <form method="POST" action="{{ route('usuarios.store') }}">
@@ -97,7 +97,7 @@
                 <div class="mb-3">
                     <label class="form-label-sced">Nome completo <span class="text-danger">*</span></label>
                     <input type="text" name="nome" class="form-input-sced @error('nome') is-invalid @enderror"
-                           value="{{ old('nome') }}" placeholder="Nome completo do usuário" required>
+                           value="{{ old('nome') }}" required>
                     @error('nome')<div class="form-error">{{ $message }}</div>@enderror
                 </div>
 
@@ -105,7 +105,8 @@
                 <div class="mb-3">
                     <label class="form-label-sced">E-mail <span class="text-danger">*</span></label>
                     <input type="email" name="email" class="form-input-sced @error('email') is-invalid @enderror"
-                           value="{{ old('email') }}" placeholder="email@dominio.com" required>
+                           value="{{ old('email') }}" required>
+                    <div class="helper-text">O e-mail será usado para login no sistema.</div>
                     @error('email')<div class="form-error">{{ $message }}</div>@enderror
                 </div>
 
@@ -114,36 +115,47 @@
                     <div class="col-md-6">
                         <label class="form-label-sced">Senha <span class="text-danger">*</span></label>
                         <div style="position: relative;">
-                            <input type="password" name="password" id="senha" class="form-input-sced @error('password') is-invalid @enderror"
-                                   placeholder="Mínimo 6 caracteres" required>
+                            <input type="password" name="password" id="senha" class="form-input-sced @error('password') is-invalid @enderror" required>
                             <button type="button" onclick="toggleSenha('senha', this)" 
-                                    style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer;">
+                                    style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--cinza-600);">
                                 👁️
                             </button>
                         </div>
+                        <div class="helper-text">Mínimo de 6 caracteres.</div>
                         @error('password')<div class="form-error">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label-sced">Confirmar Senha <span class="text-danger">*</span></label>
+                        <label class="form-label-sced">Confirmar senha <span class="text-danger">*</span></label>
                         <div style="position: relative;">
-                            <input type="password" name="password_confirmation" id="senha_confirma" class="form-input-sced" placeholder="Repita a senha" required>
+                            <input type="password" name="password_confirmation" id="senha_confirma" class="form-input-sced" required>
                             <button type="button" onclick="toggleSenha('senha_confirma', this)" 
-                                    style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer;">
+                                    style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--cinza-600);">
                                 👁️
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {{-- Perfil --}}
-                <div class="mb-3">
-                    <label class="form-label-sced">Perfil de acesso <span class="text-danger">*</span></label>
-                    <select name="perfil" class="form-input-sced" required>
-                        <option value="operador" {{ old('perfil') == 'operador' ? 'selected' : '' }}>👤 Operador</option>
-                        <option value="n3" {{ old('perfil') == 'n3' ? 'selected' : '' }}>⭐ Supervisor N3</option>
-                        <option value="administrador" {{ old('perfil') == 'administrador' ? 'selected' : '' }}>👑 Administrador</option>
-                    </select>
-                    @error('perfil')<div class="form-error">{{ $message }}</div>@enderror
+                {{-- Perfil e Status --}}
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label-sced">Perfil de acesso <span class="text-danger">*</span></label>
+                        <select name="perfil" class="form-input-sced" required>
+                            <option value="operador" {{ old('perfil') == 'operador' ? 'selected' : '' }}>👤 Operador</option>
+                            <option value="administrador" {{ old('perfil') == 'administrador' ? 'selected' : '' }}>👑 Administrador</option>
+                        </select>
+                        <div class="helper-text">Define as permissões gerais do usuário no sistema.</div>
+                        @error('perfil')<div class="form-error">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-sced">Status</label>
+                        <select name="status" class="form-input-sced" required>
+                            <option value="ativo" selected>🟢 Ativo</option>
+                            <option value="inativo">🔴 Inativo</option>
+                        </select>
+                        <div class="helper-text">Usuários inativos não conseguem acessar o sistema.</div>
+                        @error('status')<div class="form-error">{{ $message }}</div>@enderror
+                    </div>
                 </div>
 
                 {{-- Departamento e Cargo --}}
@@ -154,7 +166,7 @@
                             <option value="">Selecione o departamento</option>
                             @foreach($departamentos as $depto)
                                 <option value="{{ $depto->id }}" {{ old('departamento_id') == $depto->id ? 'selected' : '' }}>
-                                    🏢 {{ $depto->nome }}
+                                    {{ $depto->nome }}
                                 </option>
                             @endforeach
                         </select>
@@ -163,11 +175,11 @@
                     <div class="col-md-6">
                         <label class="form-label-sced">Cargo <span class="text-danger">*</span></label>
                         <select name="cargo" class="form-input-sced" required>
-                            <option value="">Selecione o cargo</option>
-                            <option value="N1" {{ old('cargo') == 'N1' ? 'selected' : '' }}>🎯 N1 - Atendimento</option>
-                            <option value="N2" {{ old('cargo') == 'N2' ? 'selected' : '' }}>📊 N2 - Analista</option>
-                            <option value="N3" {{ old('cargo') == 'N3' ? 'selected' : '' }}>⭐ N3 - Supervisor</option>
+                            <option value="N1" {{ old('cargo') == 'N1' ? 'selected' : '' }}>N1 - Atendimento</option>
+                            <option value="N2" {{ old('cargo') == 'N2' ? 'selected' : '' }}>N2 - Analista</option>
+                            <option value="N3" {{ old('cargo') == 'N3' ? 'selected' : '' }}>N3 - Supervisor</option>
                         </select>
+                        <div class="helper-text">Define o nível hierárquico para fluxo de processos.</div>
                         @error('cargo')<div class="form-error">{{ $message }}</div>@enderror
                     </div>
                 </div>
@@ -179,7 +191,7 @@
                             <div style="font-weight: 600;">🎯 Pode Assumir Processos</div>
                             <div class="helper-text" style="margin-top: 4px;">
                                 Permite que este usuário assuma processos do seu setor.
-                                Administradores e N3 sempre podem assumir independentemente desta configuração.
+                                Administradores sempre podem assumir independentemente desta configuração.
                             </div>
                         </div>
                         <label class="toggle-switch">
@@ -190,7 +202,7 @@
                 </div>
 
                 {{-- Botões --}}
-                <div class="d-flex justify-content-end gap-3 mt-4 pt-3 border-top">
+                <div class="d-flex justify-content-between gap-3 mt-4 pt-3 border-top">
                     <a href="{{ route('usuarios.index') }}" class="btn-secondary-sced">Cancelar</a>
                     <button type="submit" class="btn-primary-sced">💾 Cadastrar Usuário</button>
                 </div>
@@ -204,6 +216,8 @@
 <script>
     function toggleSenha(inputId, btn) {
         const input = document.getElementById(inputId);
+        if (!input) return;
+        
         const type = input.type === 'password' ? 'text' : 'password';
         input.type = type;
         btn.innerHTML = type === 'text' ? '🙈' : '👁️';
