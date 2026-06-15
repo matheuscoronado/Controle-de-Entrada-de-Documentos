@@ -1,6 +1,6 @@
 {{-- ============================================================
      resources/views/processos/show.blade.php
-     TELA DE DETALHE DO PROCESSO - REENVIO COM SELECT DE TIPO
+     TELA DE DETALHE DO PROCESSO - COM ATRIBUIÇÃO CORRIGIDA
      ============================================================ --}}
 @extends('layouts.app')
 @section('title', 'Processo ' . $documento->numero_protocolo)
@@ -347,6 +347,7 @@
         cursor: pointer;
         transition: all 0.2s;
         border: none;
+        width: 100%;
     }
     .btn-assumir { background: var(--azul-claro); color: white; }
     .btn-assumir:hover { background: var(--azul-hover); transform: translateY(-1px); }
@@ -360,6 +361,8 @@
     .btn-desativar:hover { background: #fecaca; }
     .btn-reabrir { background: #e0e7ff; color: #3730a3; }
     .btn-reabrir:hover { background: #c7d2fe; }
+    .btn-atribuir { background: #e0e7ff; color: #3730a3; }
+    .btn-atribuir:hover { background: #c7d2fe; transform: translateY(-1px); }
     
     .alert-warning-box {
         background: #fef3c7;
@@ -617,6 +620,16 @@
         <div class="acoes-card">
             <div class="acoes-title">⚡ Ações Disponíveis</div>
 
+            {{-- ATRIBUIR PROCESSO (N3 para N2, N2 para N1) --}}
+            @if(in_array('atribuir', $acoes ?? []))
+            <div class="acao-bloco">
+                <div class="acao-bloco-title">👥 Atribuir Processo</div>
+                <button type="button" class="btn-acao btn-atribuir w-100" onclick="abrirModalAtribuir({{ $documento->id }})">
+                    📤 Atribuir Processo
+                </button>
+            </div>
+            @endif
+
             @if(in_array('assumir', $acoes ?? []))
             <div class="acao-bloco">
                 <div class="acao-bloco-title">🎯 Assumir Processo</div>
@@ -757,6 +770,33 @@
     </div>
 </div>
 
+{{-- MODAL DE ATRIBUIÇÃO --}}
+<div id="modalAtribuir" class="modal-overlay" style="display: none;">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h4>👥 Atribuir Processo</h4>
+            <button onclick="fecharModalAtribuir()" style="background: none; border: none; font-size: 20px; cursor: pointer;">✕</button>
+        </div>
+        <form id="formAtribuir" method="POST">
+            @csrf
+            <div class="modal-body">
+                <label class="form-label-sced">Selecione o responsável</label>
+                <select name="usuario_id" id="selectUsuarioAtribuir" class="form-input-sced" required>
+                    <option value="">Carregando...</option>
+                </select>
+                <div class="mt-2">
+                    <label class="form-label-sced">Observações (opcional)</label>
+                    <textarea name="observacoes" class="form-input-sced" rows="3" placeholder="Justificativa para a atribuição..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary-sced" onclick="fecharModalAtribuir()">Cancelar</button>
+                <button type="submit" class="btn-primary-sced" style="background: var(--azul-claro);">📤 Atribuir Processo</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -765,6 +805,7 @@
 let reenvioArquivos = [];
 let todosDocumentos = [];
 let anexoIdAtual = null;
+let processoIdAtual = null;
 
 // Carregar todos os documentos cadastrados
 async function carregarDocumentos() {
@@ -795,6 +836,8 @@ function adicionarArquivosReenvio(files) {
 // Atualizar a lista visual de arquivos
 function atualizarListaReenvio() {
     const container = document.getElementById('reenvioLista');
+    if (!container) return;
+    
     container.innerHTML = '';
     
     reenvioArquivos.forEach((item, index) => {
@@ -807,7 +850,7 @@ function atualizarListaReenvio() {
         selectHtml += '<option value="">Selecione o tipo de documento</option>';
         todosDocumentos.forEach(doc => {
             const selected = item.tipoDocumentoId == doc.id ? 'selected' : '';
-            selectHtml += `<option value="${doc.id}" data-nome="${escapeHtml(doc.nome)}" ${selected}>${escapeHtml(doc.nome)}</option>`;
+            selectHtml += `<option value="${doc.id}" data-nom="${escapeHtml(doc.nome)}" ${selected}>${escapeHtml(doc.nome)}</option>`;
         });
         selectHtml += '</select>';
         
@@ -831,7 +874,7 @@ function mudarTipoReenvio(select) {
     const index = parseInt(select.getAttribute('data-index'));
     const selectedOption = select.options[select.selectedIndex];
     const tipoDocumentoId = select.value;
-    const tipoDocumentoNome = selectedOption ? selectedOption.getAttribute('data-nome') : '';
+    const tipoDocumentoNome = selectedOption ? selectedOption.getAttribute('data-nom') : '';
     
     if (reenvioArquivos[index]) {
         reenvioArquivos[index].tipoDocumentoId = tipoDocumentoId;
@@ -878,20 +921,120 @@ function sincronizarFormReenvio() {
     console.log('Formulário sincronizado:', reenvioArquivos.length, 'arquivo(s)');
 }
 
-// Funções do modal
+// Funções do modal de rejeição
 function abrirModalRejeicao(anexoId) {
     anexoIdAtual = anexoId;
     const modal = document.getElementById('modalRejeitar');
     const form = document.getElementById('formRejeitar');
-    const documentoId = {{ $documento->id }};
-    form.action = `/documentos/${documentoId}/anexos/${anexoId}/validar`;
-    modal.style.display = 'flex';
+    const documentoId = {{ $documento->id ?? 'null' }};
+    if (form && documentoId) {
+        form.action = `/documentos/${documentoId}/anexos/${anexoId}/validar`;
+    }
+    if (modal) modal.style.display = 'flex';
 }
 
 function fecharModalRejeicao() {
-    document.getElementById('modalRejeitar').style.display = 'none';
-    document.getElementById('motivoRecusa').value = '';
+    const modal = document.getElementById('modalRejeitar');
+    const motivoRecusa = document.getElementById('motivoRecusa');
+    if (modal) modal.style.display = 'none';
+    if (motivoRecusa) motivoRecusa.value = '';
     anexoIdAtual = null;
+}
+
+// ⭐ FUNÇÃO CORRIGIDA PARA ATRIBUIR PROCESSO
+function abrirModalAtribuir(processoId) {
+    console.log('abrirModalAtribuir chamado com ID:', processoId);
+    
+    processoIdAtual = processoId;
+    const modal = document.getElementById('modalAtribuir');
+    const form = document.getElementById('formAtribuir');
+    const select = document.getElementById('selectUsuarioAtribuir');
+    
+    if (!modal || !form || !select) {
+        console.error('Elementos do modal não encontrados');
+        return;
+    }
+    
+    form.action = `/documentos/${processoId}/atribuir`;
+    select.innerHTML = '<option value="">Carregando usuários...</option>';
+    modal.style.display = 'flex';
+    
+    // Tentar primeiro com a rota do ProcessoController
+    fetch(`/documentos/${processoId}/usuarios-atribuicao`, {
+        method: 'GET',
+        headers: { 
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        if (data.length === 0) {
+            select.innerHTML = '<option value="">Nenhum usuário disponível para atribuição</option>';
+            return;
+        }
+        
+        let options = '<option value="">Selecione um usuário</option>';
+        data.forEach(user => {
+            const departamentoTexto = user.departamento_nome || 'Setor não definido';
+            options += `<option value="${user.id}">${user.nome} (${user.cargo}) - ${departamentoTexto}</option>`;
+        });
+        select.innerHTML = options;
+    })
+    .catch(error => {
+        console.error('Erro ao carregar usuários (via ProcessoController):', error);
+        
+        // Tentar com a rota da API como fallback
+        fetch(`/api/usuarios/para-atribuir/${processoId}`, {
+            method: 'GET',
+            headers: { 
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            if (data.length === 0) {
+                select.innerHTML = '<option value="">Nenhum usuário disponível para atribuição</option>';
+                return;
+            }
+            
+            let options = '<option value="">Selecione um usuário</option>';
+            data.forEach(user => {
+                const departamentoTexto = user.departamento_nome || 'Setor não definido';
+                options += `<option value="${user.id}">${user.nome} (${user.cargo}) - ${departamentoTexto}</option>`;
+            });
+            select.innerHTML = options;
+        })
+        .catch(apiError => {
+            console.error('Erro ao carregar usuários (via API):', apiError);
+            select.innerHTML = '<option value="">Erro ao carregar usuários. Verifique o console.</option>';
+        });
+    });
+}
+
+function fecharModalAtribuir() {
+    const modal = document.getElementById('modalAtribuir');
+    const select = document.getElementById('selectUsuarioAtribuir');
+    if (modal) modal.style.display = 'none';
+    if (select) select.innerHTML = '<option value="">Carregando...</option>';
+    processoIdAtual = null;
 }
 
 function escapeHtml(str) {
@@ -904,14 +1047,30 @@ function escapeHtml(str) {
     });
 }
 
-// Inicializar
+// Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM carregado, inicializando scripts...');
+    
     carregarDocumentos();
     
     // Fechar modal ao clicar fora
-    document.getElementById('modalRejeitar')?.addEventListener('click', function(e) {
-        if (e.target === this) fecharModalRejeicao();
-    });
+    const modalRejeitar = document.getElementById('modalRejeitar');
+    const modalAtribuir = document.getElementById('modalAtribuir');
+    
+    if (modalRejeitar) {
+        modalRejeitar.addEventListener('click', function(e) {
+            if (e.target === this) fecharModalRejeicao();
+        });
+    }
+    
+    if (modalAtribuir) {
+        modalAtribuir.addEventListener('click', function(e) {
+            if (e.target === this) fecharModalAtribuir();
+        });
+    }
+    
+    // Verificar se as funções estão disponíveis globalmente
+    console.log('Função abrirModalAtribuir disponível:', typeof abrirModalAtribuir === 'function');
 });
 </script>
 @endpush
