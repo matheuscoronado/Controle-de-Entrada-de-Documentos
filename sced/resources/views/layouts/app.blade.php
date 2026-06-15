@@ -1,6 +1,7 @@
 {{-- ============================================================
      resources/views/layouts/app.blade.php
-     MENU LATERAL - SEM CONTADOR NO PROCESSOS
+     MENU LATERAL - COM CONTADORES CORRIGIDOS
+     CONTADOR: APENAS PROCESSOS QUE EXIGEM AÇÃO DO USUÁRIO
      ============================================================ --}}
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -21,7 +22,7 @@
     <div class="sidebar-logo">
         <div class="logo-icon">🎯</div>
         <div class="logo-title">SCED</div>
-        <div class="logo-sub">Help Desk & Processos</div>
+        <div class="logo-sub">Sistema de Controle de Entrada de Documentos</div>
     </div>
 
     <nav class="sidebar-nav">
@@ -33,10 +34,27 @@
             <span class="nav-icon">🏠</span> Dashboard
         </a>
 
-        {{-- Processos - SEM CONTADOR --}}
+        {{-- Processos - COM CONTADOR CORRIGIDO (apenas ações pendentes) --}}
+        @php
+            $user = auth()->user();
+            // Contador de processos que exigem ação do usuário
+            $processosAcaoPendente = \App\Models\Documento::where(function($q) use ($user) {
+                $q->where('atribuido_a_id', $user->id)
+                  ->whereIn('status', ['novo', 'em_analise', 'pendente']);
+            })->orWhere(function($q) use ($user) {
+                $q->where('usuario_registro_id', $user->id)
+                  ->where('status', 'pendente');
+            })->count();
+            
+            $contadorProcessos = $processosAcaoPendente > 0 ? $processosAcaoPendente : null;
+        @endphp
+        
         <a href="{{ route('documentos.index') }}"
            class="sidebar-link {{ request()->routeIs('documentos.index','documentos.show') ? 'active' : '' }}">
             <span class="nav-icon">📂</span> Processos
+            @if($contadorProcessos)
+                <span class="nav-badge">{{ $contadorProcessos }}</span>
+            @endif
         </a>
 
         <a href="{{ route('documentos.create') }}"
@@ -45,7 +63,6 @@
         </a>
 
         {{-- ADMIN / N3 (Supervisão) --}}
-        @php $user = auth()->user(); @endphp
         @if($user->isAdmin() || $user->isN3())
         <div class="nav-section-label">Supervisão</div>
 
@@ -87,16 +104,32 @@
 
     </nav>
 
+    {{-- ── SIDEBAR FOOTER ── --}}
     <div class="sidebar-footer">
         <div class="user-info">
             <div class="user-avatar">
                 {{ strtoupper(substr(auth()->user()->nome, 0, 1)) }}
             </div>
-            <div style="min-width:0;">
-                <div class="user-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            <div class="user-details">
+                <div class="user-name">
                     {{ auth()->user()->nome }}
                 </div>
-                <div class="user-role">{{ auth()->user()->label_perfil }}</div>
+                <div class="user-role">
+                    @php
+                        $cargoLabels = [
+                            'N1' => 'Atendimento',
+                            'N2' => 'Analista',
+                            'N3' => 'Supervisor',
+                            'administrador' => 'Administrador',
+                            'admin' => 'Administrador'
+                        ];
+                        $cargoLabel = $cargoLabels[auth()->user()->cargo] ?? auth()->user()->cargo;
+                    @endphp
+                    {{ $cargoLabel }}
+                </div>
+                <div class="user-sector">
+                    {{ auth()->user()->departamentoRelacionado->nome ?? 'Setor não definido' }}
+                </div>
             </div>
         </div>
         <form action="{{ route('logout') }}" method="POST">
