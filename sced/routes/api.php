@@ -17,19 +17,19 @@ Route::middleware('auth')->group(function () {
 
     // ⭐ BUSCAR TODOS OS DOCUMENTOS CADASTRADOS (para o select no create)
     Route::get('documentos/todos', function () {
-        try {
-            $documentos = \App\Models\DocumentoTipo::where('status', 'ativo')
-                ->orderBy('nome')
-                ->get(['id', 'nome', 'tipo', 'descricao']);
-            
-            \Illuminate\Support\Facades\Log::info('Documentos carregados via API', ['quantidade' => $documentos->count()]);
-            
-            return response()->json($documentos);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Erro ao carregar documentos via API: ' . $e->getMessage());
-            return response()->json(['error' => 'Erro ao carregar documentos'], 500);
-        }
-    })->name('api.documentos.todos');
+    try {
+        $documentos = \App\Models\DocumentoTipo::where('status', 'ativo')
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'tipo', 'descricao']);
+        
+        \Illuminate\Support\Facades\Log::info('Documentos carregados via API', ['quantidade' => $documentos->count()]);
+        
+        return response()->json($documentos);
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('Erro ao carregar documentos via API: ' . $e->getMessage());
+        return response()->json(['error' => 'Erro ao carregar documentos'], 500);
+    }
+})->name('api.documentos.todos');
 
     // ⭐ BUSCAR USUÁRIOS DISPONÍVEIS PARA ATRIBUIÇÃO
     Route::get('usuarios/para-atribuir/{processo}', function($processoId) {
