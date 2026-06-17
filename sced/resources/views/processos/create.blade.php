@@ -351,9 +351,9 @@
                     <div class="upload-zone-formatos">PDF · DOC · DOCX · JPG · PNG — máx. 10 MB por arquivo</div>
                 </div>
 
-                <input type="file" id="fileInput" multiple style="display:none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="adicionarArquivos(this.files)">
-                <div id="uploadList" class="mt-3"></div>
-                <div id="hiddenInputs"></div>
+                <input type="file" id="fileInput" name="arquivos[]" multiple style="display:none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="adicionarArquivos(this.files)">
+                    <div id="uploadList" class="mt-3"></div>
+                    <div id="hiddenInputs"></div>
             </div>
 
             <div class="acao-card-principal">
