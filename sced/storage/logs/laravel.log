@@ -84,3 +84,6 @@
 [2026-06-16 22:27:38] local.INFO: Iniciando criação do processo {"tipo_documento_id":"1","remetente":"Administrador","descricao":"AWDAD","departamento_destino_id":"2","setor_destino":"RH","data_recebimento":"2026-06-16","tipos_anexo":["1","1"]} 
 [2026-06-16 22:27:38] local.INFO: Processo criado {"id":1,"protocolo":"2026-000001"} 
 [2026-06-16 22:27:38] local.INFO: Processo finalizado com sucesso {"protocolo":"2026-000001"} 
+[2026-06-16 22:54:24] local.INFO: Iniciando criação do processo {"tipo_documento_id":"1","remetente":"Administrador","descricao":"awdad","departamento_destino_id":"2","setor_destino":"RH","data_recebimento":"2026-06-16","arquivos":[{"Illuminate\\Http\\UploadedFile":"C:\\xampp\\tmp\\php1E20.tmp"},{"Illuminate\\Http\\UploadedFile":"C:\\xampp\\tmp\\php1E21.tmp"}],"tipos_anexo":["1","1"]} 
+[2026-06-16 22:54:24] local.INFO: Processo criado {"id":2,"protocolo":"2026-000002"} 
+[2026-06-16 22:54:24] local.INFO: Processo finalizado com sucesso {"protocolo":"2026-000002"} 
