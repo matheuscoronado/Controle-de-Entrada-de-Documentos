@@ -126,8 +126,8 @@ class ProcessoController extends Controller
                 'departamento_destino_id' => 'nullable|exists:departamentos,id',
                 'setor_destino'           => 'required|string|max:255',
                 'data_recebimento'        => 'required|date|before_or_equal:today',
-                'anexos'                  => 'nullable|array',
-                'anexos.*'                => 'file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
+                'arquivos'                => 'nullable|array',
+                'arquivos.*'              => 'file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
                 'tipos_anexo'             => 'nullable|array',
                 'tipos_anexo.*'           => 'nullable|string',
             ]);
@@ -183,18 +183,21 @@ class ProcessoController extends Controller
                 'observacoes'  => 'Processo aberto no sistema.',
             ]);
 
-            if ($request->hasFile('anexos')) {
-                foreach ($request->file('anexos') as $i => $file) {
+           // SEGREDO DO SUCESSO: Tratamento do upload com nomes idênticos aos enviados pela Blade
+            if ($request->hasFile('arquivos')) {
+                foreach ($request->file('arquivos') as $i => $file) {
                     $caminho = $file->store('anexos', 'public');
+                    
+                    // Salvando usando o Model padrão que espera os dados estruturados
                     ArquivoAnexo::create([
-                        'documento_id'    => $documento->id,
-                        'usuario_id'      => auth()->id(),
-                        'tipo_anexo'      => $tiposAnexoMap[$i] ?? 'outros',
+                        'documento_id'     => $documento->id,
+                        'usuario_id'       => auth()->id(),
+                        'tipo_anexo'       => $tiposAnexoMap[$i] ?? 'outros',
                         'status_validacao' => 'pendente',
-                        'nome_arquivo'    => $file->getClientOriginalName(),
+                        'nome_arquivo'     => $file->getClientOriginalName(),
                         'caminho_arquivo' => $caminho,
-                        'tipo_mime'       => $file->getMimeType(),
-                        'tamanho_bytes'   => $file->getSize(),
+                        'tipo_mime'        => $file->getMimeType(),
+                        'tamanho_bytes'    => $file->getSize(),
                     ]);
                 }
             }
